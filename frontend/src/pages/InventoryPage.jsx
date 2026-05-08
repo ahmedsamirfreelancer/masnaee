@@ -73,7 +73,7 @@ export default function InventoryPage() {
     const [itemType, itemId] = form.item_id.split('_');
     setSaving(true);
     try {
-      await api.post('/inventory/adjustments', { item_type: itemType, item_id: itemId, quantity: form.quantity, type: form.type, notes: form.notes });
+      await api.post('/inventory/adjustment', { item_type: itemType, item_id: itemId, quantity: form.quantity, type: form.type, notes: form.notes });
       toast.success('تم تعديل المخزون');
       setModalOpen(false); loadStock(); if (tab === 'movements') loadMovements();
     } catch (err) { toast.error(err.response?.data?.message || 'حدث خطأ'); } finally { setSaving(false); }

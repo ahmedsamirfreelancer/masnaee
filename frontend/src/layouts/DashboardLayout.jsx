@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import ErrorBoundary from '../components/ErrorBoundary';
 import {
   HomeIcon, CubeIcon, BeakerIcon, ClipboardDocumentListIcon, CogIcon,
   BuildingStorefrontIcon, TruckIcon, BanknotesIcon, UsersIcon, ShieldCheckIcon,
@@ -164,7 +165,9 @@ export default function DashboardLayout() {
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

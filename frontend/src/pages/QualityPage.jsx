@@ -29,7 +29,7 @@ export default function QualityPage() {
 
   async function load() {
     setLoading(true);
-    try { const { data } = await api.get('/quality-checks?limit=100'); setChecks(data.data || []); } catch {} finally { setLoading(false); }
+    try { const { data } = await api.get('/quality?limit=100'); setChecks(data.data || []); } catch {} finally { setLoading(false); }
   }
 
   function openNew() {
@@ -49,7 +49,7 @@ export default function QualityPage() {
     if (!form.item_name) return toast.error('اسم الصنف مطلوب');
     setSaving(true);
     try {
-      await api.post('/quality-checks', form);
+      await api.post('/quality', form);
       toast.success('تم إنشاء فحص الجودة');
       setModalOpen(false); load();
     } catch (err) { toast.error(err.response?.data?.message || 'حدث خطأ'); } finally { setSaving(false); }

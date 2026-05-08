@@ -55,7 +55,7 @@ export default function SalariesPage() {
   async function handlePayAll() {
     if (!confirm('هل تريد صرف جميع الرواتب؟')) return;
     setPaying(true);
-    try { await api.post('/salaries/pay-all', { month, year }); toast.success('تم صرف الرواتب'); load(); } catch (err) { toast.error(err.response?.data?.message || 'فشل صرف الرواتب'); } finally { setPaying(false); }
+    try { await api.post('/salaries/pay', { month, year }); toast.success('تم صرف الرواتب'); load(); } catch (err) { toast.error(err.response?.data?.message || 'فشل صرف الرواتب'); } finally { setPaying(false); }
   }
 
   function openAdjust(row) {

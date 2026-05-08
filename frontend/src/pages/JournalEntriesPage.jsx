@@ -34,11 +34,11 @@ export default function JournalEntriesPage() {
     if (filters.date_to) params.append('date_to', filters.date_to);
     if (filters.reference_type) params.append('reference_type', filters.reference_type);
     if (filters.is_posted) params.append('is_posted', filters.is_posted);
-    try { const { data } = await api.get(`/journal-entries?${params}`); setEntries(data.data || []); } catch {} finally { setLoading(false); }
+    try { const { data } = await api.get(`/accounting/journal-entries?${params}`); setEntries(data.data || []); } catch {} finally { setLoading(false); }
   }
 
   async function loadAccounts() {
-    try { const { data } = await api.get('/accounts?limit=500'); setAccounts((data.data || []).map(a => ({ value: a.id, label: `${a.code} - ${a.name}` }))); } catch {}
+    try { const { data } = await api.get('/accounting/chart-of-accounts?limit=500'); setAccounts((data.data || []).map(a => ({ value: a.id, label: `${a.code} - ${a.name}` }))); } catch {}
   }
 
   function openNew() { setForm({ date: new Date().toISOString().slice(0, 10), description: '', lines: [emptyLine(), emptyLine()] }); setModalOpen(true); }
@@ -66,14 +66,14 @@ export default function JournalEntriesPage() {
     if (lineTotals.debit === 0) return toast.error('يجب إدخال مبالغ');
     setSaving(true);
     try {
-      await api.post('/journal-entries', form);
+      await api.post('/accounting/journal-entries', form);
       toast.success('تم إنشاء القيد');
       setModalOpen(false); load();
     } catch (err) { toast.error(err.response?.data?.message || 'حدث خطأ'); } finally { setSaving(false); }
   }
 
   async function handlePost(row) {
-    try { await api.put(`/journal-entries/${row.id}/post`); toast.success('تم ترحيل القيد'); load(); } catch (err) { toast.error(err.response?.data?.message || 'فشل الترحيل'); }
+    try { await api.put(`/accounting/journal-entries/${row.id}/post`); toast.success('تم ترحيل القيد'); load(); } catch (err) { toast.error(err.response?.data?.message || 'فشل الترحيل'); }
   }
 
   const columns = [

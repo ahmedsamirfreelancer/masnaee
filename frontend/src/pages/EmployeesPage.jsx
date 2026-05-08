@@ -31,7 +31,7 @@ export default function EmployeesPage() {
   }
 
   async function loadDepartments() {
-    try { const { data } = await api.get('/settings/departments'); setDepartments((data.data || []).map(d => ({ value: d.id, label: d.name }))); } catch {}
+    try { const { data } = await api.get('/employees/meta/departments'); setDepartments((data.data || []).map(d => ({ value: d.id, label: d.name }))); } catch {}
   }
 
   function openNew() {

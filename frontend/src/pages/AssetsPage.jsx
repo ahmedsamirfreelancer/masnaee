@@ -59,7 +59,7 @@ export default function AssetsPage() {
   async function runDepreciation() {
     if (!confirm('هل تريد تشغيل الإهلاك الشهري لجميع الأصول؟')) return;
     setDepRunning(true);
-    try { await api.post('/assets/depreciation/run'); toast.success('تم تشغيل الإهلاك'); load(); } catch (err) { toast.error(err.response?.data?.message || 'فشل تشغيل الإهلاك'); } finally { setDepRunning(false); }
+    try { await api.post('/assets/depreciate'); toast.success('تم تشغيل الإهلاك'); load(); } catch (err) { toast.error(err.response?.data?.message || 'فشل تشغيل الإهلاك'); } finally { setDepRunning(false); }
   }
 
   const totalCost = assets.reduce((s, a) => s + (Number(a.purchase_cost) || 0), 0);

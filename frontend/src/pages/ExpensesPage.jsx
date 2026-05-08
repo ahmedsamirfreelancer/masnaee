@@ -36,7 +36,7 @@ export default function ExpensesPage() {
   }
 
   async function loadCategories() {
-    try { const { data } = await api.get('/settings/expense-categories'); setCategories((data.data || []).map(c => ({ value: c.id, label: c.name }))); } catch {}
+    try { const { data } = await api.get('/expenses/categories'); setCategories((data.data || []).map(c => ({ value: c.id, label: c.name }))); } catch {}
   }
 
   function openNew() { setEditItem(null); setForm({ category_id: '', description: '', amount: '', expense_date: new Date().toISOString().slice(0, 10), payment_method: 'cash', notes: '' }); setModalOpen(true); }

@@ -32,7 +32,7 @@ export default function ChartOfAccountsPage() {
 
   async function load() {
     setLoading(true);
-    try { const { data } = await api.get('/accounts?limit=500'); setAccounts(data.data || []); } catch {} finally { setLoading(false); }
+    try { const { data } = await api.get('/accounting/chart-of-accounts?limit=500'); setAccounts(data.data || []); } catch {} finally { setLoading(false); }
   }
 
   function buildTree(items, parentId = null) {
@@ -61,8 +61,8 @@ export default function ChartOfAccountsPage() {
     if (!form.name || !form.code) return toast.error('الاسم والكود مطلوبين');
     setSaving(true);
     try {
-      if (editItem) await api.put(`/accounts/${editItem.id}`, form);
-      else await api.post('/accounts', form);
+      if (editItem) await api.put(`/accounting/chart-of-accounts/${editItem.id}`, form);
+      else await api.post('/accounting/chart-of-accounts', form);
       toast.success(editItem ? 'تم التحديث' : 'تم الإضافة');
       setModalOpen(false); load();
     } catch (err) { toast.error(err.response?.data?.message || 'حدث خطأ'); } finally { setSaving(false); }

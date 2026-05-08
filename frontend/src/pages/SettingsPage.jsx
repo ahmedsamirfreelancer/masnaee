@@ -46,8 +46,8 @@ export default function SettingsPage() {
   async function loadTab() {
     setLoading(true);
     try {
-      if (tab === 'general') { const { data } = await api.get('/settings/general'); setSettings(data.data || settings); }
-      if (tab === 'users') { const { data } = await api.get('/settings/users'); setUsers(data.data || []); }
+      if (tab === 'general') { const { data } = await api.get('/settings'); setSettings(data.data || settings); }
+      if (tab === 'users') { const { data } = await api.get('/users'); setUsers(data.data || []); }
       if (tab === 'units') { const { data } = await api.get('/settings/units'); setUnits(data.data || []); }
       if (tab === 'categories') { const { data } = await api.get('/settings/categories'); setCategories(data.data || []); }
     } catch {} finally { setLoading(false); }
@@ -56,7 +56,7 @@ export default function SettingsPage() {
   // General
   async function saveGeneral() {
     setSaving(true);
-    try { await api.put('/settings/general', settings); toast.success('تم حفظ الإعدادات'); } catch (err) { toast.error(err.response?.data?.message || 'فشل الحفظ'); } finally { setSaving(false); }
+    try { await api.put('/settings', settings); toast.success('تم حفظ الإعدادات'); } catch (err) { toast.error(err.response?.data?.message || 'فشل الحفظ'); } finally { setSaving(false); }
   }
 
   // Users
@@ -69,15 +69,15 @@ export default function SettingsPage() {
     try {
       const payload = { ...userForm };
       if (!payload.password) delete payload.password;
-      if (editUser) await api.put(`/settings/users/${editUser.id}`, payload);
-      else await api.post('/settings/users', payload);
+      if (editUser) await api.put(`/users/${editUser.id}`, payload);
+      else await api.post('/users', payload);
       toast.success(editUser ? 'تم التحديث' : 'تم إضافة المستخدم');
       setUserModal(false); loadTab();
     } catch (err) { toast.error(err.response?.data?.message || 'حدث خطأ'); } finally { setSaving(false); }
   }
   async function deleteUser(u) {
     if (!confirm(`هل تريد حذف "${u.name}"؟`)) return;
-    try { await api.delete(`/settings/users/${u.id}`); toast.success('تم الحذف'); loadTab(); } catch { toast.error('فشل الحذف'); }
+    try { await api.delete(`/users/${u.id}`); toast.success('تم الحذف'); loadTab(); } catch { toast.error('فشل الحذف'); }
   }
 
   // Units
