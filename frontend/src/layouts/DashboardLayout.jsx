@@ -6,7 +6,7 @@ import {
   BuildingStorefrontIcon, TruckIcon, BanknotesIcon, UsersIcon, ShieldCheckIcon,
   ChartBarIcon, Bars3Icon, XMarkIcon, ChevronDownIcon, ArrowRightOnRectangleIcon,
   SunIcon, MoonIcon, BellIcon, WrenchScrewdriverIcon, ArchiveBoxIcon,
-  DocumentTextIcon, CurrencyDollarIcon, UserGroupIcon, ClockIcon, CreditCardIcon,
+  DocumentTextIcon, CurrencyDollarIcon, UserGroupIcon, ClockIcon, CreditCardIcon, CalculatorIcon,
   BuildingOfficeIcon, ChartPieIcon, ScaleIcon,
 } from '@heroicons/react/24/outline';
 import useAuth from '../hooks/useAuth';
@@ -19,6 +19,7 @@ const navGroups = [
     { to: '/products', icon: CubeIcon, label: 'المنتجات' },
     { to: '/materials', icon: BeakerIcon, label: 'الخامات' },
     { to: '/recipes', icon: ClipboardDocumentListIcon, label: 'التركيبات' },
+    { to: '/pricing', icon: CalculatorIcon, label: 'حاسبة التسعير' },
   ]},
   { label: 'الإنتاج والمخزون', items: [
     { to: '/production', icon: WrenchScrewdriverIcon, label: 'أوامر الإنتاج' },

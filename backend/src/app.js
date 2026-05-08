@@ -28,6 +28,7 @@ import qualityRoutes from './routes/quality.js';
 import reportsRoutes from './routes/reports.js';
 import settingsRoutes from './routes/settings.js';
 import dashboardRoutes from './routes/dashboard.js';
+import pricingRoutes from './routes/pricing.js';
 
 const app = express();
 
@@ -64,6 +65,7 @@ app.use(`${api}/quality`, qualityRoutes);
 app.use(`${api}/reports`, reportsRoutes);
 app.use(`${api}/settings`, settingsRoutes);
 app.use(`${api}/dashboard`, dashboardRoutes);
+app.use(`${api}/pricing`, pricingRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

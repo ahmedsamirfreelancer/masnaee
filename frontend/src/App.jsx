@@ -23,6 +23,7 @@ import SalariesPage from './pages/SalariesPage';
 import QualityPage from './pages/QualityPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
+import PricingPage from './pages/PricingPage';
 
 export default function App() {
   return (
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="hr/salaries" element={<SalariesPage />} />
         <Route path="quality" element={<QualityPage />} />
         <Route path="reports" element={<ReportsPage />} />
+        <Route path="pricing" element={<PricingPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
