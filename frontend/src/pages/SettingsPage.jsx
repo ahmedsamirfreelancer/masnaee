@@ -31,7 +31,8 @@ export default function SettingsPage() {
   // Modals
   const [userModal, setUserModal] = useState(false);
   const [editUser, setEditUser] = useState(null);
-  const [userForm, setUserForm] = useState({ username: '', name: '', email: '', password: '', role: 'viewer' });
+  const [userForm, setUserForm] = useState({ username: '', full_name: '', email: '', password: '', role_id: '1' });
+  const [roles, setRoles] = useState([]);
 
   const [unitModal, setUnitModal] = useState(false);
   const [editUnit, setEditUnit] = useState(null);
@@ -46,24 +47,39 @@ export default function SettingsPage() {
   async function loadTab() {
     setLoading(true);
     try {
-      if (tab === 'general') { const { data } = await api.get('/settings'); setSettings(data.data || settings); }
-      if (tab === 'users') { const { data } = await api.get('/users'); setUsers(data.data || []); }
+      if (tab === 'general') {
+        const { data } = await api.get('/settings');
+        const s = {};
+        (data.data?.settings || []).forEach(r => { s[r.key] = r.value; });
+        setSettings(prev => ({ ...prev, ...s }));
+      }
+      if (tab === 'users') {
+        const [u, r] = await Promise.all([api.get('/users'), api.get('/users/roles').catch(() => ({ data: { data: [] } }))]);
+        setUsers(u.data.data || []);
+        setRoles((r.data.data || []).map(x => ({ value: String(x.id), label: x.display_name || x.name })));
+      }
       if (tab === 'units') { const { data } = await api.get('/settings/units'); setUnits(data.data || []); }
-      if (tab === 'categories') { const { data } = await api.get('/settings/categories'); setCategories(data.data || []); }
+      if (tab === 'categories') {
+        const [p, m] = await Promise.all([
+          api.get('/products/meta/categories').catch(() => ({ data: { data: [] } })),
+          api.get('/materials').then(r => ({ data: { data: [] } })).catch(() => ({ data: { data: [] } })),
+        ]);
+        setCategories(p.data.data || []);
+      }
     } catch {} finally { setLoading(false); }
   }
 
   // General
   async function saveGeneral() {
     setSaving(true);
-    try { await api.put('/settings', settings); toast.success('تم حفظ الإعدادات'); } catch (err) { toast.error(err.response?.data?.message || 'فشل الحفظ'); } finally { setSaving(false); }
+    try { await api.put('/settings', { settings }); toast.success('تم حفظ الإعدادات'); } catch (err) { toast.error(err.response?.data?.message || 'فشل الحفظ'); } finally { setSaving(false); }
   }
 
   // Users
-  function openNewUser() { setEditUser(null); setUserForm({ username: '', name: '', email: '', password: '', role: 'viewer' }); setUserModal(true); }
-  function openEditUser(u) { setEditUser(u); setUserForm({ username: u.username, name: u.name, email: u.email || '', password: '', role: u.role }); setUserModal(true); }
+  function openNewUser() { setEditUser(null); setUserForm({ username: '', full_name: '', email: '', password: '', role_id: '1' }); setUserModal(true); }
+  function openEditUser(u) { setEditUser(u); setUserForm({ username: u.username, full_name: u.full_name, email: u.email || '', password: '', role_id: String(u.role_id || 1) }); setUserModal(true); }
   async function saveUser() {
-    if (!userForm.username || !userForm.name) return toast.error('الاسم واسم المستخدم مطلوبين');
+    if (!userForm.username || !userForm.full_name) return toast.error('الاسم واسم المستخدم مطلوبين');
     if (!editUser && !userForm.password) return toast.error('كلمة المرور مطلوبة');
     setSaving(true);
     try {
@@ -76,7 +92,7 @@ export default function SettingsPage() {
     } catch (err) { toast.error(err.response?.data?.message || 'حدث خطأ'); } finally { setSaving(false); }
   }
   async function deleteUser(u) {
-    if (!confirm(`هل تريد حذف "${u.name}"؟`)) return;
+    if (!confirm(`هل تريد حذف "${u.full_name}"؟`)) return;
     try { await api.delete(`/users/${u.id}`); toast.success('تم الحذف'); loadTab(); } catch { toast.error('فشل الحذف'); }
   }
 
@@ -120,9 +136,10 @@ export default function SettingsPage() {
     return (
       <div key={item.id} className="flex items-center justify-between py-3 px-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700/50">
         <div className="flex items-center gap-3">
-          <span className="font-medium text-slate-700 dark:text-slate-300">{item.name}</span>
+          <span className="font-medium text-slate-700 dark:text-slate-300">{item.full_name || item.name}</span>
           {item.abbreviation && <span className="text-xs text-slate-400">({item.abbreviation})</span>}
-          {item.role && <Badge color="info">{roleOpts.find(r => r.value === item.role)?.label || item.role}</Badge>}
+          {item.username && <span className="text-xs text-slate-400">@{item.username}</span>}
+          {item.role_display && <Badge color="info">{item.role_display}</Badge>}
           {item.type && <Badge color="gray">{item.type === 'product' ? 'منتج' : item.type === 'material' ? 'مادة' : item.type}</Badge>}
         </div>
         <div className="flex items-center gap-1">
@@ -185,10 +202,10 @@ export default function SettingsPage() {
       <Modal open={userModal} onClose={() => setUserModal(false)} title={editUser ? 'تعديل المستخدم' : 'إضافة مستخدم جديد'}>
         <div className="space-y-4">
           <Input label="اسم المستخدم *" value={userForm.username} onChange={e => setUserForm({...userForm, username: e.target.value})} />
-          <Input label="الاسم الكامل *" value={userForm.name} onChange={e => setUserForm({...userForm, name: e.target.value})} />
+          <Input label="الاسم الكامل *" value={userForm.full_name} onChange={e => setUserForm({...userForm, full_name: e.target.value})} />
           <Input label="البريد الإلكتروني" value={userForm.email} onChange={e => setUserForm({...userForm, email: e.target.value})} />
           <Input label={editUser ? 'كلمة المرور (اتركها فارغة للإبقاء)' : 'كلمة المرور *'} type="password" value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} />
-          <Select label="الدور" options={roleOpts} value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value})} />
+          <Select label="الدور" options={roles.length ? roles : [{value:'1',label:'مدير النظام'}]} value={userForm.role_id} onChange={e => setUserForm({...userForm, role_id: e.target.value})} />
         </div>
         <div className="flex justify-end gap-3 mt-6">
           <Button variant="secondary" onClick={() => setUserModal(false)}>إلغاء</Button>
