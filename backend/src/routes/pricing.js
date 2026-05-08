@@ -232,4 +232,36 @@ router.get('/oil-settings', authorize('products.view', '*'), async (req, res, ne
   } catch (err) { next(err); }
 });
 
+// === سجل أسعار الطن ===
+
+// حفظ سعر اليوم
+router.post('/ton-price-log', authorize('products.view', '*'), async (req, res, next) => {
+  try {
+    const { price, date } = req.body;
+    if (!price) return res.status(400).json({ success: false, message: 'السعر مطلوب' });
+    const d = date || new Date().toISOString().split('T')[0];
+    const [existing] = await db.query("SELECT id FROM settings WHERE `key` = ?", [`ton_price_${d}`]);
+    if (existing.length) {
+      await db.query("UPDATE settings SET `value` = ? WHERE `key` = ?", [String(price), `ton_price_${d}`]);
+    } else {
+      await db.query("INSERT INTO settings (`key`, `value`, `group`) VALUES (?, ?, 'ton_prices')", [`ton_price_${d}`, String(price)]);
+    }
+    res.json({ success: true });
+  } catch (err) { next(err); }
+});
+
+// جلب سجل الأسعار (آخر 90 يوم)
+router.get('/ton-price-log', authorize('products.view', '*'), async (req, res, next) => {
+  try {
+    const [rows] = await db.query(
+      "SELECT `key`, `value` FROM settings WHERE `group` = 'ton_prices' ORDER BY `key` DESC LIMIT 90"
+    );
+    const data = rows.map(r => ({
+      date: r.key.replace('ton_price_', ''),
+      price: Number(r.value),
+    })).reverse();
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+});
+
 export default router;
