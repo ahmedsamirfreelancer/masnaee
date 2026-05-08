@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 50" fill="none">
+  <!-- Factory Icon -->
+  <g transform="translate(0, 3)">
+    <!-- Building base -->
+    <rect x="4" y="18" width="36" height="26" rx="2" fill="#2563EB"/>
+    <!-- Chimney stacks -->
+    <rect x="8" y="8" width="6" height="12" rx="1" fill="#2563EB"/>
+    <rect x="18" y="4" width="6" height="16" rx="1" fill="#0EA5E9"/>
+    <rect x="28" y="10" width="6" height="10" rx="1" fill="#2563EB"/>
+    <!-- Smoke -->
+    <circle cx="21" cy="2" r="2" fill="#0EA5E9" opacity="0.4"/>
+    <!-- Windows -->
+    <rect x="9" y="24" width="5" height="5" rx="1" fill="white" opacity="0.9"/>
+    <rect x="17" y="24" width="5" height="5" rx="1" fill="white" opacity="0.9"/>
+    <rect x="25" y="24" width="5" height="5" rx="1" fill="white" opacity="0.9"/>
+    <!-- Door -->
+    <rect x="15" y="34" width="10" height="10" rx="1.5" fill="white" opacity="0.9"/>
+    <!-- Gear accent -->
+    <circle cx="36" cy="14" r="5" fill="none" stroke="#0EA5E9" stroke-width="1.5"/>
+    <circle cx="36" cy="14" r="2" fill="#0EA5E9"/>
+  </g>
+  <!-- Arabic Text مصنعي -->
+  <text x="52" y="36" font-family="Cairo, Arial, sans-serif" font-size="28" font-weight="700" fill="#1E293B" direction="rtl">
+    <tspan fill="#2563EB">مصنعي</tspan>
+  </text>
+  <!-- Subtitle -->
+  <text x="54" y="48" font-family="Cairo, Arial, sans-serif" font-size="9" fill="#64748B">نظام إدارة المصانع</text>
+</svg>
