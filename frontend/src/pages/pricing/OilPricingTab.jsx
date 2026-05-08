@@ -9,17 +9,17 @@ import api from '../../utils/api';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
 import toast from 'react-hot-toast';
 
-// تكلفة التعبئة الثابتة لكل أزازة
-const DEFAULT_PACKAGING = {
-  bottle: 3.25,       // الأزازة
-  cap: 0.70,          // الغطاء
-  sticker: 0.33,      // الاستيكر
-  shrink: 0.16,       // الشرينك
-  adhesive: 0.33,     // اللزق
-  glue: 0.05,         // الغراء
-  carton: 10,         // الكرتونة (لـ 12 أزازة)
-  bottles_per_carton: 12,
-};
+// بنود التعبئة الافتراضية (dynamic - المستخدم يضيف ويشيل)
+const DEFAULT_PACKAGING_ITEMS = [
+  { name: 'الأزازة', cost: 3.25, per: 'bottle' },
+  { name: 'الغطاء', cost: 0.70, per: 'bottle' },
+  { name: 'الاستيكر', cost: 0.33, per: 'bottle' },
+  { name: 'الشرينك', cost: 0.16, per: 'bottle' },
+  { name: 'اللزق', cost: 0.33, per: 'bottle' },
+  { name: 'الغراء', cost: 0.05, per: 'bottle' },
+  { name: 'الكرتونة', cost: 10, per: 'carton' },
+];
+const DEFAULT_BOTTLES_PER_CARTON = 12;
 
 // المنتجات الثلاثة
 const DEFAULT_SIZES = [
@@ -40,7 +40,8 @@ const DEFAULT_MONTHLY = {
 
 export default function OilPricingTab() {
   const [tonPrice, setTonPrice] = useState('');
-  const [packaging, setPackaging] = useState(DEFAULT_PACKAGING);
+  const [packItems, setPackItems] = useState(DEFAULT_PACKAGING_ITEMS);
+  const [bottlesPerCarton, setBottlesPerCarton] = useState(DEFAULT_BOTTLES_PER_CARTON);
   const [sizes, setSizes] = useState(DEFAULT_SIZES);
   const [monthly, setMonthly] = useState(DEFAULT_MONTHLY);
   const [profitMargin, setProfitMargin] = useState(15); // نسبة الربح %
@@ -55,18 +56,19 @@ export default function OilPricingTab() {
       const { data } = await api.get('/pricing/oil-settings');
       if (data.data) {
         if (data.data.ton_price) setTonPrice(data.data.ton_price);
-        if (data.data.packaging) setPackaging(p => ({ ...p, ...data.data.packaging }));
+        if (data.data.pack_items) setPackItems(data.data.pack_items);
+        if (data.data.bottles_per_carton) setBottlesPerCarton(Number(data.data.bottles_per_carton));
         if (data.data.monthly) setMonthly(m => ({ ...m, ...data.data.monthly }));
         if (data.data.profit_margin) setProfitMargin(Number(data.data.profit_margin));
         if (data.data.work_days) setWorkDays(Number(data.data.work_days));
-        if (data.data.sizes) setSizes(s => s.map((sz, i) => ({ ...sz, ...data.data.sizes[i] })));
+        if (data.data.sizes) setSizes(s => s.map((sz, i) => data.data.sizes[i] ? { ...sz, ...data.data.sizes[i] } : sz));
       }
     } catch {} finally { setLoaded(true); }
   }
 
   async function saveSettings() {
     try {
-      await api.put('/pricing/oil-settings', { ton_price: tonPrice, packaging, monthly, profit_margin: profitMargin, work_days: workDays, sizes });
+      await api.put('/pricing/oil-settings', { ton_price: tonPrice, pack_items: packItems, bottles_per_carton: bottlesPerCarton, monthly, profit_margin: profitMargin, work_days: workDays, sizes });
       toast.success('تم الحفظ');
       setSettingsModal(false);
     } catch { toast.error('فشل الحفظ'); }
@@ -76,14 +78,17 @@ export default function OilPricingTab() {
   useEffect(() => {
     if (!loaded || !tonPrice) return;
     const timer = setTimeout(() => {
-      api.put('/pricing/oil-settings', { ton_price: tonPrice, packaging, monthly, profit_margin: profitMargin, work_days: workDays, sizes }).catch(() => {});
+      api.put('/pricing/oil-settings', { ton_price: tonPrice, pack_items: packItems, bottles_per_carton: bottlesPerCarton, monthly, profit_margin: profitMargin, work_days: workDays, sizes }).catch(() => {});
     }, 1000);
     return () => clearTimeout(timer);
   }, [tonPrice, profitMargin]);
 
   const pricePerKg = tonPrice ? Number(tonPrice) / 1000 : 0;
   const totalMonthly = Object.values(monthly).reduce((s, v) => s + Number(v || 0), 0);
-  const packagingPerBottle = Number(packaging.bottle) + Number(packaging.cap) + Number(packaging.sticker) + Number(packaging.shrink) + Number(packaging.adhesive) + Number(packaging.glue) + (Number(packaging.carton) / Number(packaging.bottles_per_carton));
+  const packagingPerBottle = packItems.reduce((sum, item) => {
+    const cost = Number(item.cost) || 0;
+    return sum + (item.per === 'carton' ? cost / (bottlesPerCarton || 1) : cost);
+  }, 0);
 
   // حساب كل حجم
   const calculations = useMemo(() => {
@@ -92,16 +97,16 @@ export default function OilPricingTab() {
       const totalCostPerBottle = oilCost + packagingPerBottle;
       const sellingPrice = totalCostPerBottle * (1 + profitMargin / 100);
       const profitPerBottle = sellingPrice - totalCostPerBottle;
-      const profitPerCarton = profitPerBottle * Number(packaging.bottles_per_carton);
-      const costPerCarton = totalCostPerBottle * Number(packaging.bottles_per_carton);
-      const sellPerCarton = sellingPrice * Number(packaging.bottles_per_carton);
+      const profitPerCarton = profitPerBottle * bottlesPerCarton;
+      const costPerCarton = totalCostPerBottle * bottlesPerCarton;
+      const sellPerCarton = sellingPrice * bottlesPerCarton;
 
       // كام أزازة/كرتونة لازم تبيع عشان تغطي المصاريف
       const bottlesPerMonth = profitPerBottle > 0 ? Math.ceil(totalMonthly / profitPerBottle) : 0;
       const bottlesPerDay = workDays > 0 ? Math.ceil(bottlesPerMonth / workDays) : 0;
       const bottlesPerWeek = Math.ceil(bottlesPerMonth / (workDays / 6)); // 6 أيام في الأسبوع
-      const cartonsPerMonth = Math.ceil(bottlesPerMonth / Number(packaging.bottles_per_carton));
-      const cartonsPerDay = Math.ceil(bottlesPerDay / Number(packaging.bottles_per_carton));
+      const cartonsPerMonth = Math.ceil(bottlesPerMonth / bottlesPerCarton);
+      const cartonsPerDay = Math.ceil(bottlesPerDay / bottlesPerCarton);
 
       return {
         ...size,
@@ -120,7 +125,7 @@ export default function OilPricingTab() {
         cartonsPerDay,
       };
     });
-  }, [sizes, pricePerKg, packagingPerBottle, profitMargin, totalMonthly, workDays, packaging.bottles_per_carton]);
+  }, [sizes, pricePerKg, packagingPerBottle, profitMargin, totalMonthly, workDays, bottlesPerCarton]);
 
   if (!loaded) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" /></div>;
 
@@ -191,7 +196,7 @@ export default function OilPricingTab() {
                 {/* سعر الكرتونة */}
                 <div className="bg-slate-50 dark:bg-slate-700/30 rounded-xl p-3">
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-slate-500">تكلفة الكرتونة ({packaging.bottles_per_carton} أزازة)</span>
+                    <span className="text-slate-500">تكلفة الكرتونة ({bottlesPerCarton} أزازة)</span>
                     <span className="font-bold">{formatCurrency(calc.costPerCarton)}</span>
                   </div>
                   <div className="flex justify-between text-sm mb-1">
@@ -248,18 +253,36 @@ export default function OilPricingTab() {
       {/* الإعدادات */}
       <Modal open={settingsModal} onClose={() => setSettingsModal(false)} title="إعدادات التسعير" size="lg">
         <div className="space-y-6">
-          {/* تكاليف التعبئة */}
+          {/* بنود التعبئة */}
           <div>
-            <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-3">تكاليف التعبئة (لكل أزازة)</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Input label="الأزازة" type="number" step="0.01" value={packaging.bottle} onChange={e => setPackaging({...packaging, bottle: e.target.value})} />
-              <Input label="الغطاء" type="number" step="0.01" value={packaging.cap} onChange={e => setPackaging({...packaging, cap: e.target.value})} />
-              <Input label="الاستيكر" type="number" step="0.01" value={packaging.sticker} onChange={e => setPackaging({...packaging, sticker: e.target.value})} />
-              <Input label="الشرينك" type="number" step="0.01" value={packaging.shrink} onChange={e => setPackaging({...packaging, shrink: e.target.value})} />
-              <Input label="اللزق" type="number" step="0.01" value={packaging.adhesive} onChange={e => setPackaging({...packaging, adhesive: e.target.value})} />
-              <Input label="الغراء" type="number" step="0.01" value={packaging.glue} onChange={e => setPackaging({...packaging, glue: e.target.value})} />
-              <Input label="الكرتونة" type="number" step="0.01" value={packaging.carton} onChange={e => setPackaging({...packaging, carton: e.target.value})} />
-              <Input label="أزازات/كرتونة" type="number" value={packaging.bottles_per_carton} onChange={e => setPackaging({...packaging, bottles_per_carton: e.target.value})} />
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-bold text-slate-700 dark:text-slate-300">بنود التعبئة</h4>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-400">أزازات/كرتونة:</span>
+                <input type="number" value={bottlesPerCarton} onChange={e => setBottlesPerCarton(Number(e.target.value))}
+                  className="w-16 px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-center" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              {packItems.map((item, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input value={item.name} onChange={e => { const u = [...packItems]; u[i].name = e.target.value; setPackItems(u); }}
+                    placeholder="اسم البند" className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm" />
+                  <input type="number" step="0.01" value={item.cost} onChange={e => { const u = [...packItems]; u[i].cost = e.target.value; setPackItems(u); }}
+                    placeholder="السعر" className="w-24 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-center" />
+                  <select value={item.per} onChange={e => { const u = [...packItems]; u[i].per = e.target.value; setPackItems(u); }}
+                    className="w-28 px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-xs">
+                    <option value="bottle">لكل أزازة</option>
+                    <option value="carton">لكل كرتونة</option>
+                  </select>
+                  <button onClick={() => setPackItems(packItems.filter((_, j) => j !== i))}
+                    className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-600">✕</button>
+                </div>
+              ))}
+              <button onClick={() => setPackItems([...packItems, { name: '', cost: 0, per: 'bottle' }])}
+                className="w-full py-2 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 text-sm text-slate-400 hover:text-primary-600 hover:border-primary-400 transition-colors">
+                + إضافة بند
+              </button>
             </div>
           </div>
 
