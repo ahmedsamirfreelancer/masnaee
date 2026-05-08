@@ -207,4 +207,29 @@ router.get('/settings', authorize('products.view', '*'), async (req, res, next) 
   } catch (err) { next(err); }
 });
 
+// === تسعير الزيت ===
+
+// حفظ إعدادات الزيت
+router.put('/oil-settings', authorize('products.view', '*'), async (req, res, next) => {
+  try {
+    const data = JSON.stringify(req.body);
+    const [existing] = await db.query("SELECT id FROM settings WHERE `key` = 'oil_pricing'");
+    if (existing.length) {
+      await db.query("UPDATE settings SET `value` = ? WHERE `key` = 'oil_pricing'", [data]);
+    } else {
+      await db.query("INSERT INTO settings (`key`, `value`, `group`) VALUES ('oil_pricing', ?, 'pricing')", [data]);
+    }
+    res.json({ success: true, message: 'تم حفظ إعدادات التسعير' });
+  } catch (err) { next(err); }
+});
+
+// جلب إعدادات الزيت
+router.get('/oil-settings', authorize('products.view', '*'), async (req, res, next) => {
+  try {
+    const [rows] = await db.query("SELECT `value` FROM settings WHERE `key` = 'oil_pricing'");
+    const data = rows.length ? JSON.parse(rows[0].value) : null;
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+});
+
 export default router;

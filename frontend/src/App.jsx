@@ -24,6 +24,7 @@ import QualityPage from './pages/QualityPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import PricingPage from './pages/PricingPage';
+import OilPricingPage from './pages/OilPricingPage';
 
 export default function App() {
   return (
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="quality" element={<QualityPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="pricing" element={<PricingPage />} />
+        <Route path="oil-pricing" element={<OilPricingPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
