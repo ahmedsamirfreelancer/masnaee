@@ -7,6 +7,7 @@ import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
 import toast from 'react-hot-toast';
@@ -69,10 +70,9 @@ export default function ProductsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="page-title">المنتجات</h1>
+      <PageHeader title="المنتجات" description="كل المنتجات التامة اللي بتبيعها. أضف منتج جديد، حدد سعر التكلفة وسعر البيع والحد الأدنى للمخزون. لما المخزون ينزل عن الحد الأدنى هيظهر تنبيه.">
         <Button icon={PlusIcon} onClick={openNew}>إضافة منتج</Button>
-      </div>
+      </PageHeader>
 
       <Card noPadding>
         <DataTable columns={columns} data={products} loading={loading} onEdit={openEdit} onDelete={handleDelete} />

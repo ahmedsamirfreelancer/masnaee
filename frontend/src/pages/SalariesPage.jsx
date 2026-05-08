@@ -7,6 +7,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import StatsCard from '../components/ui/StatsCard';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
 import toast from 'react-hot-toast';
@@ -89,14 +90,11 @@ export default function SalariesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="page-title">الرواتب</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" icon={PlusIcon} onClick={() => { setAdvanceForm({ employee_id: '', amount: '', date: now.toISOString().slice(0, 10), notes: '' }); setAdvanceModal(true); }}>سلفة</Button>
-          <Button variant="outline" icon={CalculatorIcon} loading={calculating} onClick={handleCalculate}>حساب الرواتب</Button>
-          <Button icon={BanknotesIcon} loading={paying} onClick={handlePayAll}>صرف الكل</Button>
-        </div>
-      </div>
+      <PageHeader title="المرتبات" description="احسب وصرف مرتبات الموظفين شهرياً. النظام بيحسب: المرتب الأساسي + الإضافي - الخصومات - السلف = صافي المرتب.">
+        <Button variant="outline" icon={PlusIcon} onClick={() => { setAdvanceForm({ employee_id: '', amount: '', date: now.toISOString().slice(0, 10), notes: '' }); setAdvanceModal(true); }}>سلفة</Button>
+        <Button variant="outline" icon={CalculatorIcon} loading={calculating} onClick={handleCalculate}>حساب الرواتب</Button>
+        <Button icon={BanknotesIcon} loading={paying} onClick={handlePayAll}>صرف الكل</Button>
+      </PageHeader>
 
       <div className="flex items-center gap-3">
         <Select options={monthOpts} value={month} onChange={e => setMonth(Number(e.target.value))} className="w-24" />

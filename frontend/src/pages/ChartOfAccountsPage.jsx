@@ -6,6 +6,7 @@ import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
 import toast from 'react-hot-toast';
@@ -110,10 +111,9 @@ export default function ChartOfAccountsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="page-title">شجرة الحسابات</h1>
+      <PageHeader title="شجرة الحسابات" description="الهيكل المحاسبي للمصنع (أصول، خصوم، حقوق ملكية، إيرادات، مصروفات). الحسابات الأساسية موجودة جاهزة، تقدر تضيف حسابات فرعية.">
         <Button icon={PlusIcon} onClick={() => openNew()}>إضافة حساب</Button>
-      </div>
+      </PageHeader>
 
       <Card noPadding>
         {loading ? (

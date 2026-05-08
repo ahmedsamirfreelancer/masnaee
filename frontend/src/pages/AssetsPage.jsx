@@ -8,6 +8,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import StatsCard from '../components/ui/StatsCard';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../utils/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
@@ -76,13 +77,10 @@ export default function AssetsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="page-title">الأصول الثابتة</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" icon={CalculatorIcon} loading={depRunning} onClick={runDepreciation}>تشغيل الإهلاك</Button>
-          <Button icon={PlusIcon} onClick={openNew}>إضافة أصل</Button>
-        </div>
-      </div>
+      <PageHeader title="الأصول" description="أصول المصنع الثابتة (ماكينات، سيارات، معدات). النظام بيحسب الإهلاك الشهري تلقائي ويسجل القيود.">
+        <Button variant="outline" icon={CalculatorIcon} loading={depRunning} onClick={runDepreciation}>تشغيل الإهلاك</Button>
+        <Button icon={PlusIcon} onClick={openNew}>إضافة أصل</Button>
+      </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatsCard icon={BuildingOffice2Icon} label="إجمالي تكلفة الأصول" value={formatCurrency(totalCost)} color="blue" />

@@ -7,6 +7,7 @@ import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../utils/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
@@ -110,10 +111,9 @@ export default function SalesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="page-title">المبيعات</h1>
+      <PageHeader title="طلبات البيع" description="أنشئ طلب بيع للعميل، أضف المنتجات والكميات. الطلب بيمر بمراحل: مسودة ← تأكيد ← شحن ← تسليم. عند التسليم بيتخصم من المخزون وبيتسجل قيد محاسبي تلقائي.">
         <Button icon={PlusIcon} onClick={openNew}>طلب بيع جديد</Button>
-      </div>
+      </PageHeader>
 
       <div className="flex flex-wrap gap-3">
         <Select options={statusOpts} value={filters.status} onChange={e => setFilters({...filters, status: e.target.value})} placeholder="حالة الطلب" className="w-40" />

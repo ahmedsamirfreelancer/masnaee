@@ -5,6 +5,7 @@ import Button from '../components/ui/Button';
 import DataTable from '../components/ui/DataTable';
 import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
@@ -56,10 +57,9 @@ export default function SuppliersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="page-title">الموردون</h1>
+      <PageHeader title="الموردين" description="قائمة الموردين اللي بتشتري منهم الخامات. تابع رصيد كل مورد.">
         <Button icon={PlusIcon} onClick={openNew}>إضافة مورد</Button>
-      </div>
+      </PageHeader>
 
       <Card noPadding>
         <DataTable columns={columns} data={suppliers} loading={loading} onEdit={openEdit} onDelete={handleDelete} />

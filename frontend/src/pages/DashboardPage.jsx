@@ -9,6 +9,7 @@ import StatsCard from '../components/ui/StatsCard';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../utils/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 
@@ -66,10 +67,9 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="page-title">لوحة التحكم</h1>
+      <PageHeader title="لوحة التحكم" description="ملخص شامل لنشاط المصنع. الأرقام تتحدث تلقائياً مع كل عملية بيع أو إنتاج أو مصروف.">
         <p className="text-sm text-slate-500">{formatDate(new Date())}</p>
-      </div>
+      </PageHeader>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">

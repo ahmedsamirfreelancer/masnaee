@@ -5,6 +5,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
@@ -65,19 +66,16 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="page-title">الحضور والانصراف</h1>
-        <div className="flex gap-2">
-          <button onClick={() => setView('daily')}
-            className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${view === 'daily' ? 'bg-primary-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
-            <CalendarDaysIcon className="h-4 w-4" />يومي
-          </button>
-          <button onClick={() => setView('monthly')}
-            className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${view === 'monthly' ? 'bg-primary-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
-            <TableCellsIcon className="h-4 w-4" />شهري
-          </button>
-        </div>
-      </div>
+      <PageHeader title="الحضور والانصراف" description="سجل حضور وانصراف الموظفين يومياً. اختار التاريخ وسجل وقت الحضور والانصراف والحالة لكل موظف.">
+        <button onClick={() => setView('daily')}
+          className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${view === 'daily' ? 'bg-primary-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+          <CalendarDaysIcon className="h-4 w-4" />يومي
+        </button>
+        <button onClick={() => setView('monthly')}
+          className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${view === 'monthly' ? 'bg-primary-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+          <TableCellsIcon className="h-4 w-4" />شهري
+        </button>
+      </PageHeader>
 
       {view === 'daily' && (
         <>

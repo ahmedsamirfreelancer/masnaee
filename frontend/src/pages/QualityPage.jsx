@@ -8,6 +8,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import StatsCard from '../components/ui/StatsCard';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../utils/api';
 import { formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
@@ -68,10 +69,9 @@ export default function QualityPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="page-title">مراقبة الجودة</h1>
+      <PageHeader title="فحص الجودة" description="سجل فحوصات الجودة للخامات الواردة والمنتجات التامة. حدد معايير الفحص والنتيجة (ناجح/فاشل).">
         <Button icon={PlusIcon} onClick={openNew}>فحص جديد</Button>
-      </div>
+      </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatsCard icon={ClipboardDocumentCheckIcon} label="إجمالي الفحوصات" value={checks.length} color="blue" />

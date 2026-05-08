@@ -8,6 +8,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import StatsCard from '../components/ui/StatsCard';
 import Badge from '../components/ui/Badge';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../utils/api';
 import { formatCurrency, formatNumber, formatDate } from '../utils/formatters';
 
@@ -245,7 +246,7 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="page-title">التقارير</h1>
+      <PageHeader title="التقارير" description="تقارير شاملة عن المبيعات والمشتريات والإنتاج والمخزون والأرباح. اختار الفترة الزمنية وشوف النتائج." />
 
       {!active && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

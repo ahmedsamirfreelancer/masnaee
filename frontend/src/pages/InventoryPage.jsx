@@ -8,6 +8,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import StatsCard from '../components/ui/StatsCard';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../utils/api';
 import { formatDate, formatNumber } from '../utils/formatters';
 import toast from 'react-hot-toast';
@@ -113,10 +114,9 @@ export default function InventoryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="page-title">المخزون</h1>
+      <PageHeader title="المخزون" description="تتبع أرصدة الخامات والمنتجات وحركات المخزون (دخول/خروج/تحويل). تقدر تعمل تعديل يدوي لو في فرق بين الفعلي والنظام.">
         <Button icon={PlusIcon} onClick={openAdjust}>تعديل يدوي</Button>
-      </div>
+      </PageHeader>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatsCard icon={CubeIcon} label="إجمالي الأصناف" value={totalItems} color="blue" />

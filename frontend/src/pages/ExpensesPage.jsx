@@ -7,6 +7,7 @@ import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import StatsCard from '../components/ui/StatsCard';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../utils/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
@@ -75,10 +76,9 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="page-title">المصروفات</h1>
+      <PageHeader title="المصروفات" description="سجل كل مصروفات المصنع (إيجار، كهرباء، بنزين، صيانة...). كل مصروف بيتسجل قيد محاسبي تلقائي.">
         <Button icon={PlusIcon} onClick={openNew}>إضافة مصروف</Button>
-      </div>
+      </PageHeader>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatsCard icon={BanknotesIcon} label="إجمالي المصروفات" value={formatCurrency(totalExpenses)} color="red" />

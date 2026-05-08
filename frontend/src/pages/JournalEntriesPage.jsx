@@ -7,6 +7,7 @@ import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../utils/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
@@ -92,10 +93,9 @@ export default function JournalEntriesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="page-title">القيود اليومية</h1>
+      <PageHeader title="القيود اليومية" description="كل العمليات المالية بتتسجل هنا تلقائي (بيع، شراء، مصروف، مرتب). تقدر كمان تضيف قيد يدوي. لازم المدين يساوي الدائن.">
         <Button icon={PlusIcon} onClick={openNew}>قيد جديد</Button>
-      </div>
+      </PageHeader>
 
       <div className="flex flex-wrap gap-3">
         <Select options={refTypes} value={filters.reference_type} onChange={e => setFilters({...filters, reference_type: e.target.value})} placeholder="النوع" className="w-36" />

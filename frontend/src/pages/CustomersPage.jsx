@@ -7,6 +7,7 @@ import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../utils/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
@@ -77,10 +78,9 @@ export default function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="page-title">العملاء</h1>
+      <PageHeader title="العملاء" description="قائمة العملاء (تجار جملة، تجزئة، موزعين). تقدر تحدد حد ائتمان لكل عميل وتتابع رصيده.">
         <Button icon={PlusIcon} onClick={openNew}>إضافة عميل</Button>
-      </div>
+      </PageHeader>
 
       <Card noPadding>
         <DataTable columns={columns} data={customers} loading={loading} onEdit={openEdit} onDelete={handleDelete} onView={viewOrders} />

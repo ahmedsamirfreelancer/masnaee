@@ -6,6 +6,7 @@ import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
@@ -134,7 +135,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="page-title">الإعدادات</h1>
+      <PageHeader title="إعدادات النظام" description="إعدادات المصنع الأساسية، إدارة المستخدمين والصلاحيات، الوحدات والتصنيفات." />
 
       <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
         {tabs.map(t => (

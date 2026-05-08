@@ -6,6 +6,7 @@ import DataTable from '../components/ui/DataTable';
 import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
@@ -91,10 +92,9 @@ export default function RecipesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="page-title">وصفات الإنتاج</h1>
+      <PageHeader title="التركيبات" description="وصفات الإنتاج - كل منتج محتاج إيه خامات وبأي كمية. مثلاً: عبوة زيت 1 لتر = 1 لتر زيت خام + 1 عبوة + 1 غطاء. النظام بيخصم الخامات تلقائياً لما تبدأ الإنتاج.">
         <Button icon={PlusIcon} onClick={openNew}>إضافة وصفة</Button>
-      </div>
+      </PageHeader>
 
       <Card noPadding>
         <DataTable columns={columns} data={recipes} loading={loading} onEdit={openEdit} onDelete={handleDelete} />

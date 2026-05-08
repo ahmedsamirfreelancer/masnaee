@@ -7,6 +7,7 @@ import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../utils/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
@@ -73,10 +74,9 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="page-title">المدفوعات</h1>
+      <PageHeader title="المدفوعات" description="تسجيل المدفوعات الواردة من العملاء والصادرة للموردين. كل دفعة بتحدث رصيد العميل/المورد وبتسجل قيد.">
         <Button icon={PlusIcon} onClick={() => openNew(tab)}>تسجيل دفعة</Button>
-      </div>
+      </PageHeader>
 
       <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700">
         {tabs.map(t => (
