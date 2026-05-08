@@ -13,7 +13,7 @@ router.get('/', authorize('assets.view', '*'), async (req, res, next) => {
   try {
     const [rows] = await db.query(
       `SELECT a.*,
-              (a.purchase_cost - COALESCE(a.accumulated_depreciation, 0)) as current_value
+              COALESCE((SELECT SUM(ad.depreciation_amount) FROM asset_depreciation ad WHERE ad.asset_id = a.id), 0) as accumulated_depreciation
        FROM assets a WHERE a.is_active = TRUE ORDER BY a.created_at DESC`
     );
     res.json({ success: true, data: rows });
@@ -32,20 +32,20 @@ router.post('/', authorize('assets.create', '*'), [
     await conn.beginTransaction();
     const { name, category, purchase_cost, purchase_date, useful_life_months, salvage_value, depreciation_method, description, payment_method } = req.body;
 
-    const monthly_depreciation = (purchase_cost - (salvage_value || 0)) / useful_life_months;
-
     const [result] = await conn.query(
-      `INSERT INTO assets (name, category, purchase_cost, purchase_date, useful_life_months, salvage_value, depreciation_method, monthly_depreciation, accumulated_depreciation, description, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, TRUE)`,
-      [name, category, purchase_cost, purchase_date || new Date(), useful_life_months, salvage_value || 0, depreciation_method || 'straight_line', monthly_depreciation, description]
+      `INSERT INTO assets (name, category, purchase_cost, purchase_date, useful_life_months, salvage_value, depreciation_method, current_value, notes, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
+      [name, category, purchase_cost, purchase_date || new Date(), useful_life_months, salvage_value || 0, depreciation_method || 'straight_line', purchase_cost, description]
     );
 
     // قيد محاسبي: مدين حساب الأصول - دائن الصندوق/البنك
     const cashCode = payment_method === 'bank' ? '1120' : '1110';
+    const [fyRow] = await conn.query('SELECT id FROM fiscal_years WHERE is_closed = 0 ORDER BY id DESC LIMIT 1');
+    const fiscalYearId = fyRow.length ? fyRow[0].id : 1;
     const [jeResult] = await conn.query(
-      `INSERT INTO journal_entries (entry_number, entry_date, reference_type, reference_id, description, is_posted, created_by)
-       VALUES (?, ?, 'asset', ?, ?, TRUE, ?)`,
-      [generateNumber('JE', result.insertId), purchase_date || new Date(), result.insertId, `شراء أصل: ${name}`, req.user.id]
+      `INSERT INTO journal_entries (entry_number, fiscal_year_id, entry_date, reference_type, reference_id, description, is_posted, total_debit, total_credit, created_by)
+       VALUES (?, ?, ?, 'adjustment', ?, ?, TRUE, ?, ?, ?)`,
+      [generateNumber('JE', result.insertId), fiscalYearId, purchase_date || new Date(), result.insertId, `شراء أصل: ${name}`, purchase_cost, purchase_cost, req.user.id]
     );
     // مدين: الأصول الثابتة (حساب 1400)
     await conn.query(
@@ -90,16 +90,23 @@ router.post('/depreciate', authorize('assets.create', '*'), async (req, res, nex
     const { month, year } = req.body;
     const period = `${year}-${String(month).padStart(2, '0')}`;
 
+    const periodDate = `${period}-01`;
+
     // تحقق من عدم تنفيذ الإهلاك لنفس الشهر
     const [existing] = await conn.query(
-      `SELECT id FROM asset_depreciation WHERE period = ? LIMIT 1`, [period]
+      `SELECT id FROM asset_depreciation WHERE period_date = ? LIMIT 1`, [periodDate]
     );
     if (existing.length) {
       return res.status(400).json({ success: false, message: `تم احتساب الإهلاك لشهر ${period} مسبقاً` });
     }
 
+    // Get assets with their accumulated depreciation calculated from asset_depreciation table
     const [assets] = await conn.query(
-      `SELECT * FROM assets WHERE is_active = TRUE AND accumulated_depreciation < (purchase_cost - salvage_value)`
+      `SELECT a.*,
+              COALESCE((SELECT SUM(ad.depreciation_amount) FROM asset_depreciation ad WHERE ad.asset_id = a.id), 0) as total_accumulated
+       FROM assets a
+       WHERE a.is_active = TRUE
+       HAVING total_accumulated < (a.purchase_cost - a.salvage_value)`
     );
 
     if (!assets.length) {
@@ -109,28 +116,33 @@ router.post('/depreciate', authorize('assets.create', '*'), async (req, res, nex
     let totalDepreciation = 0;
 
     for (const asset of assets) {
-      const remaining = asset.purchase_cost - asset.salvage_value - asset.accumulated_depreciation;
-      const depAmount = Math.min(asset.monthly_depreciation, remaining);
+      const monthlyDep = (asset.purchase_cost - asset.salvage_value) / asset.useful_life_months;
+      const remaining = asset.purchase_cost - asset.salvage_value - asset.total_accumulated;
+      const depAmount = Math.min(monthlyDep, remaining);
       if (depAmount <= 0) continue;
 
       totalDepreciation += depAmount;
+      const newAccumulated = asset.total_accumulated + depAmount;
+      const bookValue = asset.purchase_cost - newAccumulated;
 
       await conn.query(
-        `INSERT INTO asset_depreciation (asset_id, period, amount, created_at) VALUES (?, ?, ?, NOW())`,
-        [asset.id, period, depAmount]
+        `INSERT INTO asset_depreciation (asset_id, period_date, depreciation_amount, accumulated_depreciation, book_value) VALUES (?, ?, ?, ?, ?)`,
+        [asset.id, periodDate, depAmount, newAccumulated, bookValue]
       );
       await conn.query(
-        `UPDATE assets SET accumulated_depreciation = accumulated_depreciation + ? WHERE id = ?`,
-        [depAmount, asset.id]
+        `UPDATE assets SET current_value = ? WHERE id = ?`,
+        [bookValue, asset.id]
       );
     }
 
     // قيد محاسبي مجمع: مدين مصروف الإهلاك - دائن مجمع الإهلاك
     if (totalDepreciation > 0) {
+      const [fyRow] = await conn.query('SELECT id FROM fiscal_years WHERE is_closed = 0 ORDER BY id DESC LIMIT 1');
+      const fiscalYearId = fyRow.length ? fyRow[0].id : 1;
       const [jeResult] = await conn.query(
-        `INSERT INTO journal_entries (entry_number, entry_date, reference_type, reference_id, description, is_posted, created_by)
-         VALUES (?, ?, 'depreciation', 0, ?, TRUE, ?)`,
-        [generateNumber('JE', Date.now() % 10000), `${period}-01`, `إهلاك أصول شهر ${period}`, req.user.id]
+        `INSERT INTO journal_entries (entry_number, fiscal_year_id, entry_date, reference_type, reference_id, description, is_posted, total_debit, total_credit, created_by)
+         VALUES (?, ?, ?, 'depreciation', 0, ?, TRUE, ?, ?, ?)`,
+        [generateNumber('JE', Date.now() % 10000), fiscalYearId, periodDate, `إهلاك أصول شهر ${period}`, totalDepreciation, totalDepreciation, req.user.id]
       );
       // مدين: مصروف الإهلاك (5200)
       await conn.query(
@@ -163,10 +175,11 @@ router.get('/:id/depreciation', authorize('assets.view', '*'), async (req, res, 
     if (!asset.length) return res.status(404).json({ success: false, message: 'الأصل غير موجود' });
 
     const [records] = await db.query(
-      `SELECT * FROM asset_depreciation WHERE asset_id = ? ORDER BY period`, [req.params.id]
+      `SELECT * FROM asset_depreciation WHERE asset_id = ? ORDER BY period_date`, [req.params.id]
     );
 
-    const currentValue = asset[0].purchase_cost - (asset[0].accumulated_depreciation || 0);
+    const totalAccumulated = records.reduce((s, r) => s + r.depreciation_amount, 0);
+    const currentValue = asset[0].purchase_cost - totalAccumulated;
 
     res.json({
       success: true,

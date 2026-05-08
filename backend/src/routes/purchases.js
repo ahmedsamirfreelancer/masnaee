@@ -74,18 +74,18 @@ router.post('/', authorize('purchases.create', '*'), [
     const total = subtotal - disc + tax;
 
     const [result] = await conn.query(
-      `INSERT INTO purchase_orders (order_number, supplier_id, order_date, subtotal, discount, tax_rate, tax_amount, total_amount, notes, status, payment_status, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', 'unpaid', ?)`,
-      [order_number, supplier_id, order_date || new Date(), subtotal, disc, tax_rate || 0, tax, total, notes, req.user.id]
+      `INSERT INTO purchase_orders (order_number, supplier_id, order_date, subtotal, discount_amount, tax_amount, total_amount, notes, status, payment_status, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'draft', 'unpaid', ?)`,
+      [order_number, supplier_id, order_date || new Date(), subtotal, disc, tax, total, notes, req.user.id]
     );
     const orderId = result.insertId;
 
     for (const item of items) {
-      const line_total = item.quantity * item.unit_price;
+      const total_price = item.quantity * item.unit_price;
       await conn.query(
-        `INSERT INTO purchase_order_items (purchase_order_id, material_id, quantity, unit_price, line_total)
+        `INSERT INTO purchase_order_items (purchase_order_id, material_id, quantity, unit_price, total_price)
          VALUES (?, ?, ?, ?, ?)`,
-        [orderId, item.material_id, item.quantity, item.unit_price, line_total]
+        [orderId, item.material_id, item.quantity, item.unit_price, total_price]
       );
     }
 
@@ -122,18 +122,18 @@ router.put('/:id', authorize('purchases.edit', '*'), async (req, res, next) => {
     await conn.query('UPDATE suppliers SET balance = balance - ? WHERE id = ?', [order[0].total_amount, order[0].supplier_id]);
 
     await conn.query(
-      `UPDATE purchase_orders SET supplier_id=?, subtotal=?, discount=?, tax_rate=?, tax_amount=?, total_amount=?, notes=? WHERE id=?`,
-      [supplier_id || order[0].supplier_id, subtotal, disc, tax_rate || 0, tax, total, notes, req.params.id]
+      `UPDATE purchase_orders SET supplier_id=?, subtotal=?, discount_amount=?, tax_amount=?, total_amount=?, notes=? WHERE id=?`,
+      [supplier_id || order[0].supplier_id, subtotal, disc, tax, total, notes, req.params.id]
     );
 
     if (items) {
       await conn.query('DELETE FROM purchase_order_items WHERE purchase_order_id = ?', [req.params.id]);
       for (const item of items) {
-        const line_total = item.quantity * item.unit_price;
+        const total_price = item.quantity * item.unit_price;
         await conn.query(
-          `INSERT INTO purchase_order_items (purchase_order_id, material_id, quantity, unit_price, line_total)
+          `INSERT INTO purchase_order_items (purchase_order_id, material_id, quantity, unit_price, total_price)
            VALUES (?, ?, ?, ?, ?)`,
-          [req.params.id, item.material_id, item.quantity, item.unit_price, line_total]
+          [req.params.id, item.material_id, item.quantity, item.unit_price, total_price]
         );
       }
     }
@@ -175,17 +175,19 @@ router.put('/:id/receive', authorize('purchases.edit', '*'), async (req, res, ne
         'UPDATE raw_materials SET current_stock = current_stock + ? WHERE id = ?', [qty, item.material_id]
       );
       await conn.query(
-        `INSERT INTO inventory_movements (item_type, item_id, movement_type, quantity, reference_type, reference_id, notes, created_by)
-         VALUES ('material', ?, 'in', ?, 'purchase', ?, 'استلام مشتريات', ?)`,
+        `INSERT INTO inventory_movements (type, item_type, item_id, warehouse_id, quantity, reference_type, reference_id, notes, created_by)
+         VALUES ('in', 'material', ?, 1, ?, 'purchase', ?, 'استلام مشتريات', ?)`,
         [item.material_id, qty, req.params.id, req.user.id]
       );
     }
 
     // قيد محاسبي: مدين المواد الخام - دائن الموردين
+    const [fyRow] = await conn.query('SELECT id FROM fiscal_years WHERE is_closed = 0 ORDER BY id DESC LIMIT 1');
+    const fiscalYearId = fyRow.length ? fyRow[0].id : 1;
     const [jeResult] = await conn.query(
-      `INSERT INTO journal_entries (entry_number, entry_date, reference_type, reference_id, description, is_posted, created_by)
-       VALUES (?, NOW(), 'purchase', ?, ?, TRUE, ?)`,
-      [generateNumber('JE', order.id), req.params.id, `استلام مشتريات ${order.order_number}`, req.user.id]
+      `INSERT INTO journal_entries (entry_number, fiscal_year_id, entry_date, reference_type, reference_id, description, is_posted, total_debit, total_credit, created_by)
+       VALUES (?, ?, NOW(), 'purchase', ?, ?, TRUE, ?, ?, ?)`,
+      [generateNumber('JE', order.id), fiscalYearId, req.params.id, `استلام مشتريات ${order.order_number}`, order.total_amount, order.total_amount, req.user.id]
     );
     // مدين: المواد الخام (حساب 1300)
     await conn.query(
@@ -201,7 +203,7 @@ router.put('/:id/receive', authorize('purchases.edit', '*'), async (req, res, ne
     );
 
     await conn.query(
-      `UPDATE purchase_orders SET status = 'received', received_date = NOW() WHERE id = ?`, [req.params.id]
+      `UPDATE purchase_orders SET status = 'received' WHERE id = ?`, [req.params.id]
     );
     await conn.commit();
     res.json({ success: true, message: 'تم استلام البضائع بنجاح' });
@@ -253,16 +255,19 @@ router.post('/returns', authorize('purchases.create', '*'), [
       totalReturn += returnAmount;
       await conn.query('UPDATE raw_materials SET current_stock = current_stock - ? WHERE id = ?', [item.quantity, item.material_id]);
       await conn.query(
-        `INSERT INTO inventory_movements (item_type, item_id, movement_type, quantity, reference_type, reference_id, notes, created_by)
-         VALUES ('material', ?, 'out', ?, 'purchase_return', ?, ?, ?)`,
+        `INSERT INTO inventory_movements (type, item_type, item_id, warehouse_id, quantity, reference_type, reference_id, notes, created_by)
+         VALUES ('out', 'material', ?, 1, ?, 'return', ?, ?, ?)`,
         [item.material_id, item.quantity, purchase_order_id, reason || 'مرتجع مشتريات', req.user.id]
       );
     }
 
+    const [lastRet] = await conn.query('SELECT id FROM purchase_returns ORDER BY id DESC LIMIT 1');
+    const retSeq = lastRet.length ? lastRet[0].id + 1 : 1;
+    const return_number = `PRET-${String(retSeq).padStart(6, '0')}`;
     const [result] = await conn.query(
-      `INSERT INTO purchase_returns (purchase_order_id, return_date, total_amount, reason, created_by)
-       VALUES (?, NOW(), ?, ?, ?)`,
-      [purchase_order_id, totalReturn, reason, req.user.id]
+      `INSERT INTO purchase_returns (return_number, purchase_order_id, supplier_id, return_date, total_amount, reason, created_by)
+       VALUES (?, ?, ?, CURDATE(), ?, ?, ?)`,
+      [return_number, purchase_order_id, orders[0].supplier_id, totalReturn, reason, req.user.id]
     );
 
     await conn.query('UPDATE suppliers SET balance = balance - ? WHERE id = ?', [totalReturn, orders[0].supplier_id]);

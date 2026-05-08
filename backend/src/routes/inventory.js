@@ -17,7 +17,7 @@ router.get('/movements', authorize('inventory.view', '*'), async (req, res, next
                  LEFT JOIN users u ON im.created_by = u.id
                  WHERE 1=1`;
     const params = [];
-    if (type) { query += ` AND im.movement_type = ?`; params.push(type); }
+    if (type) { query += ` AND im.type = ?`; params.push(type); }
     if (item_type) { query += ` AND im.item_type = ?`; params.push(item_type); }
     if (date_from) { query += ` AND DATE(im.created_at) >= ?`; params.push(date_from); }
     if (date_to) { query += ` AND DATE(im.created_at) <= ?`; params.push(date_to); }
@@ -80,9 +80,9 @@ router.post('/adjustment', authorize('inventory.adjust', '*'), [
       [quantity, item_id]
     );
     await conn.query(
-      `INSERT INTO inventory_movements (item_type, item_id, movement_type, quantity, reference_type, reference_id, notes, created_by)
-       VALUES (?, ?, ?, ?, 'adjustment', 0, ?, ?)`,
-      [item_type, item_id, movType, Math.abs(quantity), reason, req.user.id]
+      `INSERT INTO inventory_movements (type, item_type, item_id, warehouse_id, quantity, reference_type, reference_id, notes, created_by)
+       VALUES (?, ?, ?, 1, ?, 'adjustment', NULL, ?, ?)`,
+      [movType, item_type, item_id, Math.abs(quantity), reason, req.user.id]
     );
     await conn.commit();
     res.json({ success: true, message: 'تم تسوية المخزون بنجاح' });
@@ -110,14 +110,14 @@ router.post('/transfer', authorize('inventory.transfer', '*'), [
 
     // حركة خروج من المخزن المصدر
     await conn.query(
-      `INSERT INTO inventory_movements (item_type, item_id, movement_type, quantity, warehouse_id, reference_type, reference_id, notes, created_by)
-       VALUES (?, ?, 'out', ?, ?, 'transfer', ?, ?, ?)`,
+      `INSERT INTO inventory_movements (type, item_type, item_id, quantity, warehouse_id, reference_type, reference_id, notes, created_by)
+       VALUES ('out', ?, ?, ?, ?, 'transfer', ?, ?, ?)`,
       [item_type, item_id, quantity, from_warehouse_id, to_warehouse_id, notes || 'تحويل مخزون', req.user.id]
     );
     // حركة دخول للمخزن المستلم
     await conn.query(
-      `INSERT INTO inventory_movements (item_type, item_id, movement_type, quantity, warehouse_id, reference_type, reference_id, notes, created_by)
-       VALUES (?, ?, 'in', ?, ?, 'transfer', ?, ?, ?)`,
+      `INSERT INTO inventory_movements (type, item_type, item_id, quantity, warehouse_id, reference_type, reference_id, notes, created_by)
+       VALUES ('in', ?, ?, ?, ?, 'transfer', ?, ?, ?)`,
       [item_type, item_id, quantity, to_warehouse_id, from_warehouse_id, notes || 'تحويل مخزون', req.user.id]
     );
     await conn.commit();
@@ -143,10 +143,10 @@ router.post('/warehouses', authorize('inventory.create', '*'), [
   validate,
 ], async (req, res, next) => {
   try {
-    const { name, location, description } = req.body;
+    const { name, location } = req.body;
     const [result] = await db.query(
-      'INSERT INTO warehouses (name, location, description) VALUES (?, ?, ?)',
-      [name, location, description]
+      'INSERT INTO warehouses (name, location) VALUES (?, ?)',
+      [name, location]
     );
     res.status(201).json({ success: true, message: 'تم إنشاء المخزن بنجاح', data: { id: result.insertId } });
   } catch (err) { next(err); }

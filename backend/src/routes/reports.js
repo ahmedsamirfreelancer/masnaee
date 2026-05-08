@@ -33,7 +33,7 @@ router.get('/sales', authorize('reports.sales', 'reports.*', '*'), async (req, r
       `SELECT ${selectExpr},
               COUNT(*) as orders_count,
               COALESCE(SUM(so.total_amount), 0) as total_sales,
-              COALESCE(SUM(so.discount), 0) as total_discount,
+              COALESCE(SUM(so.discount_amount), 0) as total_discount,
               COALESCE(SUM(so.tax_amount), 0) as total_tax
        FROM sales_orders so
        WHERE so.status != 'cancelled' ${dateFilter}
@@ -45,7 +45,7 @@ router.get('/sales', authorize('reports.sales', 'reports.*', '*'), async (req, r
     const [totals] = await db.query(
       `SELECT COUNT(*) as orders_count,
               COALESCE(SUM(total_amount), 0) as total_sales,
-              COALESCE(SUM(discount), 0) as total_discount
+              COALESCE(SUM(discount_amount), 0) as total_discount
        FROM sales_orders WHERE status != 'cancelled' ${dateFilter}`,
       params
     );
@@ -278,7 +278,7 @@ router.get('/cashflow', authorize('reports.*', '*'), async (req, res, next) => {
     const [received] = await db.query(
       `SELECT COALESCE(SUM(amount), 0) as total,
               DATE(payment_date) as date
-       FROM payments WHERE payment_type = 'received' ${dateFilter}
+       FROM payments WHERE type = 'received' ${dateFilter}
        GROUP BY DATE(payment_date) ORDER BY date`,
       params
     );
@@ -286,7 +286,7 @@ router.get('/cashflow', authorize('reports.*', '*'), async (req, res, next) => {
     const [made] = await db.query(
       `SELECT COALESCE(SUM(amount), 0) as total,
               DATE(payment_date) as date
-       FROM payments WHERE payment_type = 'made' ${dateFilter}
+       FROM payments WHERE type = 'made' ${dateFilter}
        GROUP BY DATE(payment_date) ORDER BY date`,
       params
     );

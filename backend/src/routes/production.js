@@ -13,11 +13,11 @@ router.get('/', authorize('production.view', '*'), async (req, res, next) => {
   try {
     const { status, date_from, date_to, page, limit } = req.query;
     let query = `SELECT po.*, r.name as recipe_name, p.name as product_name,
-                        u.full_name as assigned_to_name
+                        u.full_name as created_by_name
                  FROM production_orders po
                  LEFT JOIN recipes r ON po.recipe_id = r.id
                  LEFT JOIN products p ON r.product_id = p.id
-                 LEFT JOIN users u ON po.assigned_to = u.id
+                 LEFT JOIN users u ON po.created_by = u.id
                  WHERE 1=1`;
     const params = [];
     if (status) { query += ` AND po.status = ?`; params.push(status); }
@@ -37,17 +37,17 @@ router.get('/:id', authorize('production.view', '*'), async (req, res, next) => 
   try {
     const [rows] = await db.query(
       `SELECT po.*, r.name as recipe_name, p.name as product_name,
-              u.full_name as assigned_to_name
+              u.full_name as created_by_name
        FROM production_orders po
        LEFT JOIN recipes r ON po.recipe_id = r.id
        LEFT JOIN products p ON r.product_id = p.id
-       LEFT JOIN users u ON po.assigned_to = u.id
+       LEFT JOIN users u ON po.created_by = u.id
        WHERE po.id = ?`, [req.params.id]
     );
     if (!rows.length) return res.status(404).json({ success: false, message: 'أمر الإنتاج غير موجود' });
     const [logs] = await db.query(
       `SELECT pl.*, u.full_name as user_name
-       FROM production_logs pl LEFT JOIN users u ON pl.user_id = u.id
+       FROM production_logs pl LEFT JOIN users u ON pl.performed_by = u.id
        WHERE pl.production_order_id = ? ORDER BY pl.created_at DESC`, [req.params.id]
     );
     res.json({ success: true, data: { ...rows[0], logs } });
@@ -61,16 +61,20 @@ router.post('/', authorize('production.create', '*'), [
   validate,
 ], async (req, res, next) => {
   try {
-    const { recipe_id, planned_quantity, planned_date, priority, notes, assigned_to } = req.body;
+    const { recipe_id, planned_quantity, planned_date, notes } = req.body;
+    // Get product_id from recipe
+    const [recipeRows] = await db.query('SELECT product_id FROM recipes WHERE id = ?', [recipe_id]);
+    if (!recipeRows.length) return res.status(400).json({ success: false, message: 'الوصفة غير موجودة' });
+    const product_id = recipeRows[0].product_id;
     const [last] = await db.query(
       `SELECT id FROM production_orders WHERE DATE(created_at) = CURDATE() ORDER BY id DESC LIMIT 1`
     );
     const seq = last.length ? last[0].id + 1 : 1;
     const order_number = generateNumber('PRD', seq);
     const [result] = await db.query(
-      `INSERT INTO production_orders (order_number, recipe_id, planned_quantity, planned_date, priority, notes, assigned_to, status, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'planned', ?)`,
-      [order_number, recipe_id, planned_quantity, planned_date || new Date(), priority || 'normal', notes, assigned_to, req.user.id]
+      `INSERT INTO production_orders (order_number, recipe_id, product_id, planned_quantity, planned_date, notes, status, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, 'planned', ?)`,
+      [order_number, recipe_id, product_id, planned_quantity, planned_date || new Date(), notes, req.user.id]
     );
     res.status(201).json({ success: true, message: 'تم إنشاء أمر الإنتاج بنجاح', data: { id: result.insertId, order_number } });
   } catch (err) { next(err); }
@@ -105,8 +109,8 @@ router.put('/:id/start', authorize('production.edit', '*'), async (req, res, nex
       }
       await conn.query('UPDATE raw_materials SET current_stock = current_stock - ? WHERE id = ?', [needed, item.material_id]);
       await conn.query(
-        `INSERT INTO inventory_movements (item_type, item_id, movement_type, quantity, reference_type, reference_id, notes, created_by)
-         VALUES ('material', ?, 'out', ?, 'production', ?, 'خصم خامات للإنتاج', ?)`,
+        `INSERT INTO inventory_movements (type, item_type, item_id, warehouse_id, quantity, reference_type, reference_id, notes, created_by)
+         VALUES ('out', 'material', ?, 1, ?, 'production', ?, 'خصم خامات للإنتاج', ?)`,
         [item.material_id, needed, req.params.id, req.user.id]
       );
     }
@@ -147,8 +151,8 @@ router.put('/:id/complete', authorize('production.edit', '*'), [
       [actual_quantity, order.product_id]
     );
     await conn.query(
-      `INSERT INTO inventory_movements (item_type, item_id, movement_type, quantity, reference_type, reference_id, notes, created_by)
-       VALUES ('product', ?, 'in', ?, 'production', ?, 'إنتاج تام', ?)`,
+      `INSERT INTO inventory_movements (type, item_type, item_id, warehouse_id, quantity, reference_type, reference_id, notes, created_by)
+       VALUES ('in', 'product', ?, 1, ?, 'production', ?, 'إنتاج تام', ?)`,
       [order.product_id, actual_quantity, req.params.id, req.user.id]
     );
     await conn.query(
@@ -185,7 +189,7 @@ router.post('/:id/log', authorize('production.log', 'production.edit', '*'), [
   try {
     const { description, quantity_produced, notes } = req.body;
     const [result] = await db.query(
-      `INSERT INTO production_logs (production_order_id, user_id, description, quantity_produced, notes)
+      `INSERT INTO production_logs (production_order_id, performed_by, action, quantity, notes)
        VALUES (?, ?, ?, ?, ?)`,
       [req.params.id, req.user.id, description, quantity_produced || 0, notes]
     );

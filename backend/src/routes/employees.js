@@ -17,7 +17,7 @@ router.get('/', authorize('hr.view', '*'), async (req, res, next) => {
                  LEFT JOIN departments d ON e.department_id = d.id
                  WHERE 1=1`;
     const params = [];
-    if (search) { query += ` AND (e.name LIKE ? OR e.phone LIKE ? OR e.employee_number LIKE ?)`; params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+    if (search) { query += ` AND (e.name LIKE ? OR e.phone LIKE ? OR e.national_id LIKE ?)`; params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
     if (department_id) { query += ` AND e.department_id = ?`; params.push(department_id); }
     if (is_active !== undefined) { query += ` AND e.is_active = ?`; params.push(is_active === 'true' ? 1 : 0); }
     const countQuery = query.replace(/SELECT e\.\*, d\.name as department_name/, 'SELECT COUNT(*) as total');
@@ -48,11 +48,11 @@ router.post('/', authorize('hr.create', '*'), [
   validate,
 ], async (req, res, next) => {
   try {
-    const { name, employee_number, phone, email, national_id, department_id, job_title, base_salary, hire_date, address, notes } = req.body;
+    const { name, phone, national_id, department_id, position, base_salary, salary_type, hire_date, address, bank_account, emergency_contact, notes } = req.body;
     const [result] = await db.query(
-      `INSERT INTO employees (name, employee_number, phone, email, national_id, department_id, job_title, base_salary, hire_date, address, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, employee_number, phone, email, national_id, department_id, job_title, base_salary, hire_date || new Date(), address, notes]
+      `INSERT INTO employees (name, phone, national_id, department_id, position, base_salary, salary_type, hire_date, address, bank_account, emergency_contact, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, phone, national_id, department_id, position, base_salary, salary_type || 'monthly', hire_date || new Date(), address, bank_account, emergency_contact, notes]
     );
     res.status(201).json({ success: true, message: 'تم إضافة الموظف بنجاح', data: { id: result.insertId } });
   } catch (err) { next(err); }
@@ -61,10 +61,10 @@ router.post('/', authorize('hr.create', '*'), [
 // تحديث موظف
 router.put('/:id', authorize('hr.edit', '*'), async (req, res, next) => {
   try {
-    const { name, employee_number, phone, email, national_id, department_id, job_title, base_salary, address, notes, is_active } = req.body;
+    const { name, phone, national_id, department_id, position, base_salary, salary_type, address, bank_account, emergency_contact, notes, is_active } = req.body;
     await db.query(
-      `UPDATE employees SET name=?, employee_number=?, phone=?, email=?, national_id=?, department_id=?, job_title=?, base_salary=?, address=?, notes=?, is_active=? WHERE id=?`,
-      [name, employee_number, phone, email, national_id, department_id, job_title, base_salary, address, notes, is_active ?? true, req.params.id]
+      `UPDATE employees SET name=?, phone=?, national_id=?, department_id=?, position=?, base_salary=?, salary_type=?, address=?, bank_account=?, emergency_contact=?, notes=?, is_active=? WHERE id=?`,
+      [name, phone, national_id, department_id, position, base_salary, salary_type, address, bank_account, emergency_contact, notes, is_active ?? true, req.params.id]
     );
     res.json({ success: true, message: 'تم تحديث الموظف بنجاح' });
   } catch (err) { next(err); }
@@ -91,10 +91,10 @@ router.post('/meta/departments', authorize('hr.create', '*'), [
   validate,
 ], async (req, res, next) => {
   try {
-    const { name, description } = req.body;
+    const { name } = req.body;
     const [result] = await db.query(
-      'INSERT INTO departments (name, description) VALUES (?, ?)',
-      [name, description]
+      'INSERT INTO departments (name) VALUES (?)',
+      [name]
     );
     res.status(201).json({ success: true, message: 'تم إنشاء القسم بنجاح', data: { id: result.insertId } });
   } catch (err) { next(err); }

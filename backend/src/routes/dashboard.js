@@ -68,7 +68,7 @@ router.get('/top-products', async (req, res, next) => {
     const [rows] = await db.query(
       `SELECT p.id, p.name,
               COALESCE(SUM(soi.quantity), 0) as total_quantity,
-              COALESCE(SUM(soi.line_total), 0) as total_revenue
+              COALESCE(SUM(soi.total_price), 0) as total_revenue
        FROM products p
        LEFT JOIN sales_order_items soi ON p.id = soi.product_id
        LEFT JOIN sales_orders so ON soi.sales_order_id = so.id AND so.status != 'cancelled'

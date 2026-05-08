@@ -12,7 +12,7 @@ router.use(authenticate);
 router.get('/', authorize('hr.view', 'attendance.self', '*'), async (req, res, next) => {
   try {
     const { employee_id, date_from, date_to, status, page, limit } = req.query;
-    let query = `SELECT a.*, e.name as employee_name, e.employee_number
+    let query = `SELECT a.*, e.name as employee_name, e.national_id
                  FROM attendance a
                  LEFT JOIN employees e ON a.employee_id = e.id
                  WHERE 1=1`;
@@ -21,7 +21,7 @@ router.get('/', authorize('hr.view', 'attendance.self', '*'), async (req, res, n
     if (date_from) { query += ` AND a.date >= ?`; params.push(date_from); }
     if (date_to) { query += ` AND a.date <= ?`; params.push(date_to); }
     if (status) { query += ` AND a.status = ?`; params.push(status); }
-    const countQuery = query.replace(/SELECT a\.\*, e\.name.*employee_number/, 'SELECT COUNT(*) as total');
+    const countQuery = query.replace(/SELECT a\.\*, e\.name.*national_id/, 'SELECT COUNT(*) as total');
     const [countResult] = await db.query(countQuery, params);
     query += ` ORDER BY a.date DESC, e.name`;
     const pg = paginate(query, { page, limit });
@@ -109,7 +109,7 @@ router.get('/summary', authorize('hr.view', '*'), async (req, res, next) => {
     const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
 
     const [rows] = await db.query(
-      `SELECT e.id as employee_id, e.name as employee_name, e.employee_number,
+      `SELECT e.id as employee_id, e.name as employee_name,
               SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) as present_days,
               SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) as absent_days,
               SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END) as late_days,
@@ -118,7 +118,7 @@ router.get('/summary', authorize('hr.view', '*'), async (req, res, next) => {
        FROM employees e
        LEFT JOIN attendance a ON e.id = a.employee_id AND a.date BETWEEN ? AND ?
        WHERE e.is_active = TRUE
-       GROUP BY e.id, e.name, e.employee_number
+       GROUP BY e.id, e.name
        ORDER BY e.name`,
       [startDate, endDate]
     );

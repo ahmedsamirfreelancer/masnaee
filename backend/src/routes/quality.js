@@ -14,13 +14,12 @@ router.get('/', authorize('quality.view', 'quality.*', '*'), async (req, res, ne
     const { production_order_id, result: qcResult, date_from, date_to, page, limit } = req.query;
     let query = `SELECT qc.*, po.order_number as production_order_number, p.name as product_name, u.full_name as inspector_name
                  FROM quality_checks qc
-                 LEFT JOIN production_orders po ON qc.production_order_id = po.id
-                 LEFT JOIN recipes r ON po.recipe_id = r.id
-                 LEFT JOIN products p ON r.product_id = p.id
-                 LEFT JOIN users u ON qc.inspector_id = u.id
+                 LEFT JOIN production_orders po ON qc.reference_type = 'production' AND qc.reference_id = po.id
+                 LEFT JOIN products p ON qc.item_type = 'product' AND qc.item_id = p.id
+                 LEFT JOIN users u ON qc.checked_by = u.id
                  WHERE 1=1`;
     const params = [];
-    if (production_order_id) { query += ` AND qc.production_order_id = ?`; params.push(production_order_id); }
+    if (production_order_id) { query += ` AND qc.reference_type = 'production' AND qc.reference_id = ?`; params.push(production_order_id); }
     if (qcResult) { query += ` AND qc.result = ?`; params.push(qcResult); }
     if (date_from) { query += ` AND DATE(qc.check_date) >= ?`; params.push(date_from); }
     if (date_to) { query += ` AND DATE(qc.check_date) <= ?`; params.push(date_to); }
@@ -39,8 +38,8 @@ router.get('/:id', authorize('quality.view', 'quality.*', '*'), async (req, res,
     const [rows] = await db.query(
       `SELECT qc.*, po.order_number as production_order_number, u.full_name as inspector_name
        FROM quality_checks qc
-       LEFT JOIN production_orders po ON qc.production_order_id = po.id
-       LEFT JOIN users u ON qc.inspector_id = u.id
+       LEFT JOIN production_orders po ON qc.reference_type = 'production' AND qc.reference_id = po.id
+       LEFT JOIN users u ON qc.checked_by = u.id
        WHERE qc.id = ?`, [req.params.id]
     );
     if (!rows.length) return res.status(404).json({ success: false, message: 'الفحص غير موجود' });
@@ -67,20 +66,29 @@ router.post('/', authorize('quality.create', 'quality.*', '*'), [
 
     // تحديد النتيجة الإجمالية
     const allPassed = items.every(i => i.is_passed);
-    const result = allPassed ? 'passed' : 'failed';
+    const result = allPassed ? 'pass' : 'fail';
+
+    // Generate check number
+    const [lastQc] = await conn.query('SELECT id FROM quality_checks ORDER BY id DESC LIMIT 1');
+    const qcSeq = lastQc.length ? lastQc[0].id + 1 : 1;
+    const check_number = `QC-${String(qcSeq).padStart(6, '0')}`;
+
+    // Get product info from production order
+    const [poRows] = await conn.query('SELECT product_id FROM production_orders WHERE id = ?', [production_order_id]);
+    const productId = poRows.length ? poRows[0].product_id : null;
 
     const [qcResult] = await conn.query(
-      `INSERT INTO quality_checks (production_order_id, inspector_id, check_date, sample_size, result, notes)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [production_order_id, req.user.id, check_date || new Date(), sample_size || 1, result, notes]
+      `INSERT INTO quality_checks (check_number, type, reference_type, reference_id, item_type, item_id, checked_by, check_date, result, notes)
+       VALUES (?, 'in_process', 'production', ?, 'product', ?, ?, ?, ?, ?)`,
+      [check_number, production_order_id, productId, req.user.id, check_date || new Date(), result, notes]
     );
     const checkId = qcResult.insertId;
 
     for (const item of items) {
       await conn.query(
-        `INSERT INTO quality_check_items (quality_check_id, standard_id, parameter_name, expected_value, actual_value, is_passed, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [checkId, item.standard_id || null, item.parameter_name, item.expected_value, item.actual_value, item.is_passed ? 1 : 0, item.notes]
+        `INSERT INTO quality_check_items (quality_check_id, standard_id, measured_value, result, notes)
+         VALUES (?, ?, ?, ?, ?)`,
+        [checkId, item.standard_id, item.actual_value, item.is_passed ? 'pass' : 'fail', item.notes]
       );
     }
 

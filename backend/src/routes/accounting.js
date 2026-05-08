@@ -42,17 +42,18 @@ router.get('/chart-of-accounts', authorize('accounting.view', 'accounting.*', '*
 router.post('/chart-of-accounts', authorize('accounting.create', 'accounting.*', '*'), [
   body('code').notEmpty().withMessage('رمز الحساب مطلوب'),
   body('name').notEmpty().withMessage('اسم الحساب مطلوب'),
-  body('account_type').isIn([1, 2, 3, 4, 5]).withMessage('نوع الحساب غير صالح'),
+  body('account_type_id').isIn([1, 2, 3, 4, 5]).withMessage('نوع الحساب غير صالح'),
   validate,
 ], async (req, res, next) => {
   try {
-    const { code, name, account_type, parent_id, description, is_active } = req.body;
+    const { code, name, account_type_id, parent_id, description, is_active } = req.body;
     const [existing] = await db.query('SELECT id FROM chart_of_accounts WHERE code = ?', [code]);
     if (existing.length) return res.status(400).json({ success: false, message: 'رمز الحساب مستخدم بالفعل' });
+    const level = parent_id ? 3 : 1;
     const [result] = await db.query(
-      `INSERT INTO chart_of_accounts (code, name, account_type, parent_id, description, is_active)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [code, name, account_type, parent_id || null, description, is_active ?? true]
+      `INSERT INTO chart_of_accounts (code, name, account_type_id, parent_id, level, description, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [code, name, account_type_id, parent_id || null, level, description, is_active ?? true]
     );
     res.status(201).json({ success: true, message: 'تم إضافة الحساب بنجاح', data: { id: result.insertId } });
   } catch (err) { next(err); }
@@ -147,10 +148,13 @@ router.post('/journal-entries', authorize('accounting.create', 'accounting.*', '
     const seq = last.length ? last[0].id + 1 : 1;
     const entry_number = generateNumber('JE', seq);
 
+    const [fyRow] = await conn.query('SELECT id FROM fiscal_years WHERE is_closed = 0 ORDER BY id DESC LIMIT 1');
+    const fiscalYearId = fyRow.length ? fyRow[0].id : 1;
+
     const [result] = await conn.query(
-      `INSERT INTO journal_entries (entry_number, entry_date, description, reference_type, reference_id, total_debit, total_credit, is_posted, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, FALSE, ?)`,
-      [entry_number, entry_date, description, reference_type || 'manual', reference_id || null, totalDebit, totalCredit, req.user.id]
+      `INSERT INTO journal_entries (entry_number, fiscal_year_id, entry_date, description, reference_type, reference_id, total_debit, total_credit, is_posted, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?)`,
+      [entry_number, fiscalYearId, entry_date, description, reference_type || 'adjustment', reference_id || null, totalDebit, totalCredit, req.user.id]
     );
     const jeId = result.insertId;
 
@@ -190,7 +194,7 @@ router.put('/journal-entries/:id/post', authorize('accounting.edit', 'accounting
       );
     }
 
-    await conn.query('UPDATE journal_entries SET is_posted = TRUE, posted_at = NOW() WHERE id = ?', [req.params.id]);
+    await conn.query('UPDATE journal_entries SET is_posted = TRUE, posted_by = ?, posted_at = NOW() WHERE id = ?', [req.user.id, req.params.id]);
     await conn.commit();
     res.json({ success: true, message: 'تم ترحيل القيد بنجاح' });
   } catch (err) {
@@ -213,15 +217,16 @@ router.get('/trial-balance', authorize('accounting.view', 'accounting.*', '*'), 
     if (date_to) { dateFilter += ' AND je.entry_date <= ?'; params.push(date_to); }
 
     const [rows] = await db.query(
-      `SELECT coa.id, coa.code, coa.name, coa.account_type,
+      `SELECT coa.id, coa.code, coa.name, coa.account_type_id, at.name as account_type,
               COALESCE(SUM(jel.debit), 0) as total_debit,
               COALESCE(SUM(jel.credit), 0) as total_credit,
               COALESCE(SUM(jel.debit), 0) - COALESCE(SUM(jel.credit), 0) as net_balance
        FROM chart_of_accounts coa
+       LEFT JOIN account_types at ON coa.account_type_id = at.id
        LEFT JOIN journal_entry_lines jel ON coa.id = jel.account_id
        LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.is_posted = TRUE ${dateFilter}
        WHERE coa.is_active = TRUE
-       GROUP BY coa.id, coa.code, coa.name, coa.account_type
+       GROUP BY coa.id, coa.code, coa.name, coa.account_type_id, at.name
        HAVING total_debit > 0 OR total_credit > 0
        ORDER BY coa.code`,
       params
@@ -252,7 +257,7 @@ router.get('/income-statement', authorize('accounting.view', 'accounting.*', '*'
        FROM chart_of_accounts coa
        LEFT JOIN journal_entry_lines jel ON coa.id = jel.account_id
        LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.is_posted = TRUE ${dateFilter}
-       WHERE coa.account_type = 4 AND coa.is_active = TRUE
+       WHERE coa.account_type_id = 4 AND coa.is_active = TRUE
        GROUP BY coa.id, coa.code, coa.name
        ORDER BY coa.code`,
       dateParams
@@ -265,7 +270,7 @@ router.get('/income-statement', authorize('accounting.view', 'accounting.*', '*'
        FROM chart_of_accounts coa
        LEFT JOIN journal_entry_lines jel ON coa.id = jel.account_id
        LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.is_posted = TRUE ${dateFilter}
-       WHERE coa.account_type = 5 AND coa.is_active = TRUE
+       WHERE coa.account_type_id = 5 AND coa.is_active = TRUE
        GROUP BY coa.id, coa.code, coa.name
        ORDER BY coa.code`,
       dateParams
@@ -301,7 +306,7 @@ router.get('/balance-sheet', authorize('accounting.view', 'accounting.*', '*'), 
        FROM chart_of_accounts coa
        LEFT JOIN journal_entry_lines jel ON coa.id = jel.account_id
        LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.is_posted = TRUE AND je.entry_date <= ?
-       WHERE coa.account_type = 1 AND coa.is_active = TRUE
+       WHERE coa.account_type_id = 1 AND coa.is_active = TRUE
        GROUP BY coa.id, coa.code, coa.name
        ORDER BY coa.code`, [asOfDate]
     );
@@ -313,7 +318,7 @@ router.get('/balance-sheet', authorize('accounting.view', 'accounting.*', '*'), 
        FROM chart_of_accounts coa
        LEFT JOIN journal_entry_lines jel ON coa.id = jel.account_id
        LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.is_posted = TRUE AND je.entry_date <= ?
-       WHERE coa.account_type = 2 AND coa.is_active = TRUE
+       WHERE coa.account_type_id = 2 AND coa.is_active = TRUE
        GROUP BY coa.id, coa.code, coa.name
        ORDER BY coa.code`, [asOfDate]
     );
@@ -325,7 +330,7 @@ router.get('/balance-sheet', authorize('accounting.view', 'accounting.*', '*'), 
        FROM chart_of_accounts coa
        LEFT JOIN journal_entry_lines jel ON coa.id = jel.account_id
        LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.is_posted = TRUE AND je.entry_date <= ?
-       WHERE coa.account_type = 3 AND coa.is_active = TRUE
+       WHERE coa.account_type_id = 3 AND coa.is_active = TRUE
        GROUP BY coa.id, coa.code, coa.name
        ORDER BY coa.code`, [asOfDate]
     );
@@ -333,12 +338,12 @@ router.get('/balance-sheet', authorize('accounting.view', 'accounting.*', '*'), 
     // صافي الربح (إيرادات - مصروفات) حتى التاريخ
     const [incomeResult] = await db.query(
       `SELECT
-         COALESCE(SUM(CASE WHEN coa.account_type = 4 THEN jel.credit - jel.debit ELSE 0 END), 0) -
-         COALESCE(SUM(CASE WHEN coa.account_type = 5 THEN jel.debit - jel.credit ELSE 0 END), 0) as net_income
+         COALESCE(SUM(CASE WHEN coa.account_type_id = 4 THEN jel.credit - jel.debit ELSE 0 END), 0) -
+         COALESCE(SUM(CASE WHEN coa.account_type_id = 5 THEN jel.debit - jel.credit ELSE 0 END), 0) as net_income
        FROM journal_entry_lines jel
        JOIN chart_of_accounts coa ON jel.account_id = coa.id
        JOIN journal_entries je ON jel.journal_entry_id = je.id
-       WHERE je.is_posted = TRUE AND je.entry_date <= ? AND coa.account_type IN (4, 5)`, [asOfDate]
+       WHERE je.is_posted = TRUE AND je.entry_date <= ? AND coa.account_type_id IN (4, 5)`, [asOfDate]
     );
 
     const totalAssets = assets.reduce((sum, a) => sum + a.balance, 0);
