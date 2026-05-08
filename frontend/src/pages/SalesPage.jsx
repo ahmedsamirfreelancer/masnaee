@@ -8,7 +8,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
 
@@ -39,14 +39,14 @@ export default function SalesPage() {
     if (filters.payment_status) params.append('payment_status', filters.payment_status);
     if (filters.date_from) params.append('date_from', filters.date_from);
     if (filters.date_to) params.append('date_to', filters.date_to);
-    try { const { data } = await api.get(`/sales?${params}`); setOrders(data.data || []); } catch {} finally { setLoading(false); }
+    try { const res = await api.get(`/sales?${params}`); setOrders(safeArray(res)); } catch {} finally { setLoading(false); }
   }
 
   async function loadMeta() {
     try {
       const [c, p] = await Promise.all([api.get('/customers?limit=500'), api.get('/products?limit=500')]);
-      setCustomers((c.data.data || []).map(x => ({ value: x.id, label: x.name })));
-      setProducts((p.data.data || []).map(x => ({ value: x.id, label: x.name, price: x.selling_price })));
+      setCustomers(safeArray(c).map(x => ({ value: x.id, label: x.name })));
+      setProducts(safeArray(p).map(x => ({ value: x.id, label: x.name, price: x.selling_price })));
     } catch {}
   }
 

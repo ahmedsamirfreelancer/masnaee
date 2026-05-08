@@ -9,7 +9,7 @@ import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import StatsCard from '../components/ui/StatsCard';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import { formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
 
@@ -29,7 +29,7 @@ export default function QualityPage() {
 
   async function load() {
     setLoading(true);
-    try { const { data } = await api.get('/quality?limit=100'); setChecks(data.data || []); } catch {} finally { setLoading(false); }
+    try { const res = await api.get('/quality?limit=100'); setChecks(safeArray(res)); } catch {} finally { setLoading(false); }
   }
 
   function openNew() {

@@ -9,7 +9,7 @@ import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import StatsCard from '../components/ui/StatsCard';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
 
@@ -30,7 +30,7 @@ export default function AssetsPage() {
 
   async function load() {
     setLoading(true);
-    try { const { data } = await api.get('/assets?limit=100'); setAssets(data.data || []); } catch {} finally { setLoading(false); }
+    try { const res = await api.get('/assets?limit=100'); setAssets(safeArray(res)); } catch {} finally { setLoading(false); }
   }
 
   function openNew() { setEditItem(null); setForm({ name: '', category: 'machinery', purchase_date: '', purchase_cost: '', useful_life_months: '', salvage_value: '0', depreciation_method: 'straight_line', notes: '' }); setModalOpen(true); }

@@ -9,7 +9,7 @@ import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import StatsCard from '../components/ui/StatsCard';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import { formatDate, formatNumber } from '../utils/formatters';
 import toast from 'react-hot-toast';
 
@@ -35,8 +35,8 @@ export default function InventoryPage() {
   async function loadStock() {
     setLoading(true);
     try {
-      const { data } = await api.get('/inventory/stock');
-      setStock(data.data || []);
+      const res = await api.get('/inventory/stock');
+      setStock(safeArray(res));
     } catch {} finally { setLoading(false); }
   }
 
@@ -47,8 +47,8 @@ export default function InventoryPage() {
     if (filters.date_from) params.append('date_from', filters.date_from);
     if (filters.date_to) params.append('date_to', filters.date_to);
     try {
-      const { data } = await api.get(`/inventory/movements?${params}`);
-      setMovements(data.data || []);
+      const res = await api.get(`/inventory/movements?${params}`);
+      setMovements(safeArray(res));
     } catch {} finally { setLoading(false); }
   }
 
@@ -56,8 +56,8 @@ export default function InventoryPage() {
     try {
       const [p, m] = await Promise.all([api.get('/products?limit=500'), api.get('/materials?limit=500')]);
       setItems([
-        ...(p.data.data || []).map(x => ({ value: `product_${x.id}`, label: `[منتج] ${x.name}` })),
-        ...(m.data.data || []).map(x => ({ value: `material_${x.id}`, label: `[مادة] ${x.name}` })),
+        ...safeArray(p).map(x => ({ value: `product_${x.id}`, label: `[منتج] ${x.name}` })),
+        ...safeArray(m).map(x => ({ value: `material_${x.id}`, label: `[مادة] ${x.name}` })),
       ]);
     } catch {}
   }

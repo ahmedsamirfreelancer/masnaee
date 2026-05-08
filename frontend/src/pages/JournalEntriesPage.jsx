@@ -8,7 +8,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
 
@@ -34,11 +34,11 @@ export default function JournalEntriesPage() {
     if (filters.date_to) params.append('date_to', filters.date_to);
     if (filters.reference_type) params.append('reference_type', filters.reference_type);
     if (filters.is_posted) params.append('is_posted', filters.is_posted);
-    try { const { data } = await api.get(`/accounting/journal-entries?${params}`); setEntries(data.data || []); } catch {} finally { setLoading(false); }
+    try { const res = await api.get(`/accounting/journal-entries?${params}`); setEntries(safeArray(res)); } catch {} finally { setLoading(false); }
   }
 
   async function loadAccounts() {
-    try { const { data } = await api.get('/accounting/chart-of-accounts?limit=500'); setAccounts((data.data || []).map(a => ({ value: a.id, label: `${a.code} - ${a.name}` }))); } catch {}
+    try { const res = await api.get('/accounting/chart-of-accounts?limit=500'); setAccounts(safeArray(res).map(a => ({ value: a.id, label: `${a.code} - ${a.name}` }))); } catch {}
   }
 
   function openNew() { setForm({ date: new Date().toISOString().slice(0, 10), description: '', lines: [emptyLine(), emptyLine()] }); setModalOpen(true); }

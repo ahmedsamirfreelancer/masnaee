@@ -7,7 +7,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
 import toast from 'react-hot-toast';
 
@@ -32,7 +32,7 @@ export default function ChartOfAccountsPage() {
 
   async function load() {
     setLoading(true);
-    try { const { data } = await api.get('/accounting/chart-of-accounts?limit=500'); setAccounts(data.data || []); } catch {} finally { setLoading(false); }
+    try { const res = await api.get('/accounting/chart-of-accounts?limit=500'); setAccounts(safeArray(res)); } catch {} finally { setLoading(false); }
   }
 
   function buildTree(items, parentId = null) {

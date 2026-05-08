@@ -8,7 +8,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import StatsCard from '../components/ui/StatsCard';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
 
@@ -30,13 +30,13 @@ export default function ExpensesPage() {
     setLoading(true);
     try {
       const [exp, sum] = await Promise.all([api.get('/expenses?limit=100'), api.get('/expenses/summary').catch(() => ({ data: { data: [] } }))]);
-      setExpenses(exp.data.data || []);
-      setSummary(sum.data.data || []);
+      setExpenses(safeArray(exp));
+      setSummary(safeArray(sum));
     } catch {} finally { setLoading(false); }
   }
 
   async function loadCategories() {
-    try { const { data } = await api.get('/expenses/categories'); setCategories((data.data || []).map(c => ({ value: c.id, label: c.name }))); } catch {}
+    try { const res = await api.get('/expenses/categories'); setCategories(safeArray(res).map(c => ({ value: c.id, label: c.name }))); } catch {}
   }
 
   function openNew() { setEditItem(null); setForm({ category_id: '', description: '', amount: '', expense_date: new Date().toISOString().slice(0, 10), payment_method: 'cash', notes: '' }); setModalOpen(true); }

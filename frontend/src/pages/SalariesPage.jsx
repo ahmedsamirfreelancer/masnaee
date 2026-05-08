@@ -8,7 +8,7 @@ import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import StatsCard from '../components/ui/StatsCard';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
 import toast from 'react-hot-toast';
 
@@ -38,13 +38,13 @@ export default function SalariesPage() {
         api.get(`/salaries?month=${month}&year=${year}`),
         api.get(`/salaries/advances?month=${month}&year=${year}`).catch(() => ({ data: { data: [] } }))
       ]);
-      setSalaries(sal.data.data || []);
-      setAdvances(adv.data.data || []);
+      setSalaries(safeArray(sal));
+      setAdvances(safeArray(adv));
     } catch {} finally { setLoading(false); }
   }
 
   async function loadEmployees() {
-    try { const { data } = await api.get('/employees?limit=500&is_active=1'); setEmployees((data.data || []).map(e => ({ value: e.id, label: e.name }))); } catch {}
+    try { const res = await api.get('/employees?limit=500&is_active=1'); setEmployees(safeArray(res).map(e => ({ value: e.id, label: e.name }))); } catch {}
   }
 
   async function handleCalculate() {

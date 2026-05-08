@@ -8,7 +8,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
 
@@ -29,14 +29,14 @@ export default function PaymentsPage() {
 
   async function load() {
     setLoading(true);
-    try { const { data } = await api.get(`/payments?type=${tab}&limit=100`); setPayments(data.data || []); } catch {} finally { setLoading(false); }
+    try { const res = await api.get(`/payments?type=${tab}&limit=100`); setPayments(safeArray(res)); } catch {} finally { setLoading(false); }
   }
 
   async function loadMeta() {
     try {
       const [c, s] = await Promise.all([api.get('/customers?limit=500'), api.get('/suppliers?limit=500')]);
-      setCustomers((c.data.data || []).map(x => ({ value: x.id, label: x.name })));
-      setSuppliers((s.data.data || []).map(x => ({ value: x.id, label: x.name })));
+      setCustomers(safeArray(c).map(x => ({ value: x.id, label: x.name })));
+      setSuppliers(safeArray(s).map(x => ({ value: x.id, label: x.name })));
     } catch {}
   }
 

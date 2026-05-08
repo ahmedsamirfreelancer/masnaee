@@ -8,7 +8,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import { formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
 
@@ -28,11 +28,11 @@ export default function ProductionPage() {
 
   async function load() {
     setLoading(true);
-    try { const { data } = await api.get('/production?limit=100'); setOrders(data.data || []); } catch {} finally { setLoading(false); }
+    try { const res = await api.get('/production?limit=100'); setOrders(safeArray(res)); } catch {} finally { setLoading(false); }
   }
 
   async function loadMeta() {
-    try { const { data } = await api.get('/recipes?limit=500'); setRecipes((data.data || []).map(x => ({ value: x.id, label: x.name }))); } catch {}
+    try { const res = await api.get('/recipes?limit=500'); setRecipes(safeArray(res).map(x => ({ value: x.id, label: x.name }))); } catch {}
   }
 
   function openNew() { setForm({ recipe_id: '', planned_qty: '', planned_date: '' }); setModalOpen(true); }

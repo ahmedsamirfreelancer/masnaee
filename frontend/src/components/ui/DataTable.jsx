@@ -1,13 +1,15 @@
 import { useState, useMemo } from 'react';
 import { MagnifyingGlassIcon, PencilSquareIcon, TrashIcon, EyeIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 
-export default function DataTable({ columns, data = [], loading, searchable = true, onEdit, onDelete, onView, pagination, onPageChange }) {
+export default function DataTable({ columns, data: rawData = [], loading, searchable = true, onEdit, onDelete, onView, pagination, onPageChange }) {
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState('asc');
 
+  const safeData = Array.isArray(rawData) ? rawData : [];
+
   const filtered = useMemo(() => {
-    let rows = data;
+    let rows = safeData;
     if (search) {
       const q = search.toLowerCase();
       rows = rows.filter(row => columns.some(col => String(row[col.key] || '').toLowerCase().includes(q)));
@@ -20,7 +22,7 @@ export default function DataTable({ columns, data = [], loading, searchable = tr
       });
     }
     return rows;
-  }, [data, search, sortKey, sortDir, columns]);
+  }, [safeData, search, sortKey, sortDir, columns]);
 
   const toggleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');

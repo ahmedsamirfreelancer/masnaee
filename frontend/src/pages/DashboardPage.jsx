@@ -10,7 +10,7 @@ import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 
 export default function DashboardPage() {
@@ -36,10 +36,10 @@ export default function DashboardPage() {
         api.get('/dashboard/low-stock').catch(() => ({ data: { data: [] } })),
       ]);
       setStats(s.data.data || {});
-      setSalesChart(sc.data.data || []);
-      setTopProducts(tp.data.data || []);
-      setRecentOrders(ro.data.data || []);
-      setLowStock(ls.data.data || []);
+      setSalesChart(safeArray(sc));
+      setTopProducts(safeArray(tp));
+      setRecentOrders(safeArray(ro));
+      setLowStock(safeArray(ls));
     } catch {} finally { setLoading(false); }
   }
 

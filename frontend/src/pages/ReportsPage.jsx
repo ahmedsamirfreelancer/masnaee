@@ -9,7 +9,7 @@ import Input from '../components/ui/Input';
 import StatsCard from '../components/ui/StatsCard';
 import Badge from '../components/ui/Badge';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import { formatCurrency, formatNumber, formatDate } from '../utils/formatters';
 
 const sections = [

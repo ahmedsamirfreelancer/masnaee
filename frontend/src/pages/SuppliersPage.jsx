@@ -6,7 +6,7 @@ import DataTable from '../components/ui/DataTable';
 import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import toast from 'react-hot-toast';
 
 export default function SuppliersPage() {
@@ -21,7 +21,7 @@ export default function SuppliersPage() {
 
   async function load() {
     setLoading(true);
-    try { const { data } = await api.get('/suppliers?limit=100'); setSuppliers(data.data || []); } catch {} finally { setLoading(false); }
+    try { const res = await api.get('/suppliers?limit=100'); setSuppliers(safeArray(res)); } catch {} finally { setLoading(false); }
   }
 
   function openNew() { setEditItem(null); setForm({ name: '', company_name: '', phone: '', phone2: '', email: '', address: '', city: '', tax_number: '', notes: '' }); setModalOpen(true); }

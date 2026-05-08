@@ -7,7 +7,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import toast from 'react-hot-toast';
 
 const tabs = [
@@ -55,16 +55,16 @@ export default function SettingsPage() {
       }
       if (tab === 'users') {
         const [u, r] = await Promise.all([api.get('/users'), api.get('/users/roles').catch(() => ({ data: { data: [] } }))]);
-        setUsers(u.data.data || []);
-        setRoles((r.data.data || []).map(x => ({ value: String(x.id), label: x.display_name || x.name })));
+        setUsers(safeArray(u));
+        setRoles(safeArray(r).map(x => ({ value: String(x.id), label: x.display_name || x.name })));
       }
-      if (tab === 'units') { const { data } = await api.get('/settings/units'); setUnits(data.data || []); }
+      if (tab === 'units') { const res = await api.get('/settings/units'); setUnits(safeArray(res)); }
       if (tab === 'categories') {
         const [p, m] = await Promise.all([
           api.get('/products/meta/categories').catch(() => ({ data: { data: [] } })),
           api.get('/materials').then(r => ({ data: { data: [] } })).catch(() => ({ data: { data: [] } })),
         ]);
-        setCategories(p.data.data || []);
+        setCategories(safeArray(p));
       }
     } catch {} finally { setLoading(false); }
   }

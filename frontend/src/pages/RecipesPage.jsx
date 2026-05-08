@@ -7,7 +7,7 @@ import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import toast from 'react-hot-toast';
 
 const emptyItem = () => ({ material_id: '', quantity: '', unit: '', waste_percentage: '0' });
@@ -27,15 +27,15 @@ export default function RecipesPage() {
 
   async function load() {
     setLoading(true);
-    try { const { data } = await api.get('/recipes?limit=100'); setRecipes(data.data || []); } catch {} finally { setLoading(false); }
+    try { const res = await api.get('/recipes?limit=100'); setRecipes(safeArray(res)); } catch {} finally { setLoading(false); }
   }
 
   async function loadMeta() {
     try {
       const [p, m, u] = await Promise.all([api.get('/products?limit=500'), api.get('/materials?limit=500'), api.get('/settings/units')]);
-      setProducts((p.data.data || []).map(x => ({ value: x.id, label: x.name })));
-      setMaterials((m.data.data || []).map(x => ({ value: x.id, label: x.name })));
-      setUnits((u.data.data || []).map(x => ({ value: x.id, label: x.name })));
+      setProducts(safeArray(p).map(x => ({ value: x.id, label: x.name })));
+      setMaterials(safeArray(m).map(x => ({ value: x.id, label: x.name })));
+      setUnits(safeArray(u).map(x => ({ value: x.id, label: x.name })));
     } catch {}
   }
 

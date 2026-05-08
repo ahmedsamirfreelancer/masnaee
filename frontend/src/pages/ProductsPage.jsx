@@ -8,7 +8,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
 import toast from 'react-hot-toast';
 
@@ -26,14 +26,14 @@ export default function ProductsPage() {
 
   async function load() {
     setLoading(true);
-    try { const { data } = await api.get('/products?limit=100'); setProducts(data.data || []); } catch {} finally { setLoading(false); }
+    try { const res = await api.get('/products?limit=100'); setProducts(safeArray(res)); } catch {} finally { setLoading(false); }
   }
 
   async function loadMeta() {
     try {
       const [u, c] = await Promise.all([api.get('/settings/units'), api.get('/products/meta/categories')]);
-      setUnits((u.data.data || []).map(x => ({ value: x.id, label: x.name })));
-      setCategories((c.data.data || []).map(x => ({ value: x.id, label: x.name })));
+      setUnits(safeArray(u).map(x => ({ value: x.id, label: x.name })));
+      setCategories(safeArray(c).map(x => ({ value: x.id, label: x.name })));
     } catch {}
   }
 

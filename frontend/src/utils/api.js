@@ -20,4 +20,17 @@ api.interceptors.response.use(
   }
 );
 
+// Safe helper: always returns array from API response
+export function safeArray(response) {
+  const d = response?.data?.data;
+  if (Array.isArray(d)) return d;
+  if (d && typeof d === 'object') {
+    // Try common nested array keys
+    for (const key of ['rows', 'items', 'settings', 'list', 'results']) {
+      if (Array.isArray(d[key])) return d[key];
+    }
+  }
+  return [];
+}
+
 export default api;

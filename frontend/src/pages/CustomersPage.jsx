@@ -8,7 +8,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
 
@@ -29,7 +29,7 @@ export default function CustomersPage() {
 
   async function load() {
     setLoading(true);
-    try { const { data } = await api.get('/customers?limit=100'); setCustomers(data.data || []); } catch {} finally { setLoading(false); }
+    try { const res = await api.get('/customers?limit=100'); setCustomers(safeArray(res)); } catch {} finally { setLoading(false); }
   }
 
   function openNew() { setEditItem(null); setForm({ name: '', type: 'retail', company_name: '', phone: '', phone2: '', email: '', address: '', city: '', tax_number: '', credit_limit: '', notes: '' }); setModalOpen(true); }
@@ -41,7 +41,7 @@ export default function CustomersPage() {
 
   async function viewOrders(row) {
     setOrdersModal(row);
-    try { const { data } = await api.get(`/customers/${row.id}/orders`); setCustomerOrders(data.data || []); } catch { setCustomerOrders([]); }
+    try { const res = await api.get(`/customers/${row.id}/orders`); setCustomerOrders(safeArray(res)); } catch { setCustomerOrders([]); }
   }
 
   async function handleSave() {

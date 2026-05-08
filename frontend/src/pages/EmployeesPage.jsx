@@ -8,7 +8,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
 
@@ -27,11 +27,11 @@ export default function EmployeesPage() {
 
   async function load() {
     setLoading(true);
-    try { const { data } = await api.get('/employees?limit=100'); setEmployees(data.data || []); } catch {} finally { setLoading(false); }
+    try { const res = await api.get('/employees?limit=100'); setEmployees(safeArray(res)); } catch {} finally { setLoading(false); }
   }
 
   async function loadDepartments() {
-    try { const { data } = await api.get('/employees/meta/departments'); setDepartments((data.data || []).map(d => ({ value: d.id, label: d.name }))); } catch {}
+    try { const res = await api.get('/employees/meta/departments'); setDepartments(safeArray(res).map(d => ({ value: d.id, label: d.name }))); } catch {}
   }
 
   function openNew() {

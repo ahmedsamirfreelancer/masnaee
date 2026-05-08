@@ -6,7 +6,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import PageHeader from '../components/ui/PageHeader';
-import api from '../utils/api';
+import api, { safeArray } from '../utils/api';
 import toast from 'react-hot-toast';
 
 const statusOpts = [
@@ -29,14 +29,14 @@ export default function AttendancePage() {
   useEffect(() => { if (view === 'daily') loadDaily(); else loadSummary(); }, [date, month, view]);
 
   async function loadEmployees() {
-    try { const { data } = await api.get('/employees?limit=500&is_active=1'); setEmployees(data.data || []); } catch {}
+    try { const res = await api.get('/employees?limit=500&is_active=1'); setEmployees(safeArray(res)); } catch {}
   }
 
   async function loadDaily() {
     setLoading(true);
     try {
-      const { data } = await api.get(`/attendance?date=${date}`);
-      const existing = data.data || [];
+      const res = await api.get(`/attendance?date=${date}`);
+      const existing = safeArray(res);
       const merged = employees.map(emp => {
         const rec = existing.find(r => r.employee_id === emp.id);
         return { employee_id: emp.id, employee_name: emp.name, check_in: rec?.check_in || '', check_out: rec?.check_out || '', status: rec?.status || 'present', overtime_hours: rec?.overtime_hours || '', notes: rec?.notes || '', id: rec?.id };
@@ -47,7 +47,7 @@ export default function AttendancePage() {
 
   async function loadSummary() {
     setLoading(true);
-    try { const { data } = await api.get(`/attendance/summary?month=${month}`); setSummary(data.data || []); } catch {} finally { setLoading(false); }
+    try { const res = await api.get(`/attendance/summary?month=${month}`); setSummary(safeArray(res)); } catch {} finally { setLoading(false); }
   }
 
   function updateRecord(idx, field, val) {
