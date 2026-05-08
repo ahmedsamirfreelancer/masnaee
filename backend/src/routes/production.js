@@ -23,12 +23,13 @@ router.get('/', authorize('production.view', '*'), async (req, res, next) => {
     if (status) { query += ` AND po.status = ?`; params.push(status); }
     if (date_from) { query += ` AND po.planned_date >= ?`; params.push(date_from); }
     if (date_to) { query += ` AND po.planned_date <= ?`; params.push(date_to); }
-    const countQuery = query.replace(/SELECT.*FROM/, 'SELECT COUNT(*) as total FROM');
-    const [countResult] = await db.query(countQuery, params);
+    let countQuery = `SELECT COUNT(*) as total FROM production_orders po WHERE 1=1`;
+    if (status) countQuery += ` AND po.status = '${status}'`;
+    const [countResult] = await db.query(countQuery);
     query += ` ORDER BY po.created_at DESC`;
     const pg = paginate(query, { page, limit });
     const [rows] = await db.query(pg.query, params);
-    res.json({ success: true, data: rows, pagination: { page: pg.page, limit: pg.limit, total: countResult[0].total } });
+    res.json({ success: true, data: rows, pagination: { page: pg.page, limit: pg.limit, total: countResult[0]?.total || 0 } });
   } catch (err) { next(err); }
 });
 

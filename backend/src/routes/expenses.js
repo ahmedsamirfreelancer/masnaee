@@ -23,12 +23,11 @@ router.get('/', authorize('expenses.view', 'expenses.*', '*'), async (req, res, 
     if (category) { query += ` AND e.category = ?`; params.push(category); }
     if (date_from) { query += ` AND DATE(e.expense_date) >= ?`; params.push(date_from); }
     if (date_to) { query += ` AND DATE(e.expense_date) <= ?`; params.push(date_to); }
-    const countQuery = query.replace(/SELECT e\.\*, u\.full_name.*account_name/, 'SELECT COUNT(*) as total');
-    const [countResult] = await db.query(countQuery, params);
+    const [countResult] = await db.query(`SELECT COUNT(*) as total FROM expenses e WHERE 1=1${category ? ' AND e.category = ?' : ''}`, category ? [category] : []);
     query += ` ORDER BY e.expense_date DESC`;
     const pg = paginate(query, { page, limit });
     const [rows] = await db.query(pg.query, params);
-    res.json({ success: true, data: rows, pagination: { page: pg.page, limit: pg.limit, total: countResult[0].total } });
+    res.json({ success: true, data: rows, pagination: { page: pg.page, limit: pg.limit, total: countResult[0]?.total || 0 } });
   } catch (err) { next(err); }
 });
 

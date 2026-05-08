@@ -21,12 +21,11 @@ router.get('/movements', authorize('inventory.view', '*'), async (req, res, next
     if (item_type) { query += ` AND im.item_type = ?`; params.push(item_type); }
     if (date_from) { query += ` AND DATE(im.created_at) >= ?`; params.push(date_from); }
     if (date_to) { query += ` AND DATE(im.created_at) <= ?`; params.push(date_to); }
-    const countQuery = query.replace(/SELECT.*FROM/, 'SELECT COUNT(*) as total FROM');
-    const [countResult] = await db.query(countQuery, params);
+    const [countResult] = await db.query(`SELECT COUNT(*) as total FROM inventory_movements im WHERE 1=1${type ? ' AND im.type = ?' : ''}${item_type ? ' AND im.item_type = ?' : ''}`, [type, item_type].filter(Boolean));
     query += ` ORDER BY im.created_at DESC`;
     const pg = paginate(query, { page, limit });
     const [rows] = await db.query(pg.query, params);
-    res.json({ success: true, data: rows, pagination: { page: pg.page, limit: pg.limit, total: countResult[0].total } });
+    res.json({ success: true, data: rows, pagination: { page: pg.page, limit: pg.limit, total: countResult[0]?.total || 0 } });
   } catch (err) { next(err); }
 });
 
