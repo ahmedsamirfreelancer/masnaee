@@ -72,6 +72,15 @@ export default function OilPricingTab() {
     } catch { toast.error('فشل الحفظ'); }
   }
 
+  // حفظ تلقائي لسعر الطن ونسبة الربح
+  useEffect(() => {
+    if (!loaded || !tonPrice) return;
+    const timer = setTimeout(() => {
+      api.put('/pricing/oil-settings', { ton_price: tonPrice, packaging, monthly, profit_margin: profitMargin, work_days: workDays, sizes }).catch(() => {});
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [tonPrice, profitMargin]);
+
   const pricePerKg = tonPrice ? Number(tonPrice) / 1000 : 0;
   const totalMonthly = Object.values(monthly).reduce((s, v) => s + Number(v || 0), 0);
   const packagingPerBottle = Number(packaging.bottle) + Number(packaging.cap) + Number(packaging.sticker) + Number(packaging.shrink) + Number(packaging.adhesive) + Number(packaging.glue) + (Number(packaging.carton) / Number(packaging.bottles_per_carton));
