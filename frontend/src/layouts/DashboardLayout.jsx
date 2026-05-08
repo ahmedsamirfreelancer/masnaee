@@ -20,7 +20,6 @@ const navGroups = [
     { to: '/materials', icon: BeakerIcon, label: 'الخامات' },
     { to: '/recipes', icon: ClipboardDocumentListIcon, label: 'التركيبات' },
     { to: '/pricing', icon: CalculatorIcon, label: 'حاسبة التسعير' },
-    { to: '/oil-pricing', icon: CurrencyDollarIcon, label: 'تسعير الزيت' },
   ]},
   { label: 'الإنتاج والمخزون', items: [
     { to: '/production', icon: WrenchScrewdriverIcon, label: 'أوامر الإنتاج' },
