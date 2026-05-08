@@ -45,7 +45,7 @@ router.post('/login', [
         email: user.email,
         role: user.role,
         role_display: user.role_display,
-        permissions: JSON.parse(user.permissions || '[]'),
+        permissions: typeof user.permissions === 'string' ? JSON.parse(user.permissions) : (user.permissions || []),
       },
     });
   } catch (err) { next(err); }
@@ -60,7 +60,7 @@ router.get('/me', authenticate, async (req, res, next) => {
     );
     if (!users.length) return res.status(404).json({ success: false, message: 'المستخدم غير موجود' });
     const user = users[0];
-    user.permissions = JSON.parse(user.permissions || '[]');
+    user.permissions = typeof user.permissions === 'string' ? JSON.parse(user.permissions) : (user.permissions || []);
     res.json({ success: true, data: user });
   } catch (err) { next(err); }
 });
